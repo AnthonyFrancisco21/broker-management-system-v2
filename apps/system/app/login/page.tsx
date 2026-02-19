@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { setToken } from "../../lib/auth"; // 👈 Adjusted import path
+import { setToken, getUser } from "../../lib/auth"; // 👈 Adjusted import path
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -27,7 +27,16 @@ export default function LoginPage() {
       }
 
       setToken(data.token);
-      router.push("/dashboard");
+
+      const user = getUser();
+
+      if (user?.role === "ADMIN" || user?.role === "MANAGER") {
+        router.push("/dashboard/manager");
+      } else if (user?.role === "BROKER") {
+        router.push("/dashboard/broker");
+      } else {
+        router.push("/dashboard");
+      }
     } catch (err: any) {
       setError(err.message);
     }

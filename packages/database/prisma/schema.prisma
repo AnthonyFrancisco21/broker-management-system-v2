@@ -17,7 +17,7 @@ datasource db {
 enum SystemRole {
   ADMIN
   MANAGER
-  STAFF
+  AGENT
 }
 
 enum ClientStatus {
