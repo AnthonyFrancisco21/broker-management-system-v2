@@ -12,18 +12,32 @@ export const getBrokers = async (req: Request, res: Response) => {
 };
 
 // UPDATE THIS FUNCTION:
-export const createBroker = async (req: Request, res: Response) => {
+export const createBroker = async (
+  req: Request & { file?: any },
+  res: Response,
+) => {
   try {
-    // We now expect firstName and lastName, not "name"
-    const { firstName, lastName, email } = req.body;
+    console.log("Received broker creation request");
+    console.log("Body:", req.body);
+    console.log("File:", req.file);
 
-    const newBroker = await BrokerService.createBroker(
-      firstName,
-      lastName,
-      email,
-    );
+    const brokerData = req.body;
+    const pictureFile = req.file; // If using multer
+
+    if (!brokerData.firstName || !brokerData.lastName || !brokerData.email) {
+      return res
+        .status(400)
+        .json({ error: "Missing required fields: firstName, lastName, email" });
+    }
+
+    const newBroker = await BrokerService.createBroker(brokerData, pictureFile);
+    console.log("Broker created successfully:", newBroker.id);
     res.status(201).json(newBroker);
   } catch (error: any) {
-    res.status(400).json({ error: error.message });
+    console.error("Error creating broker:", error);
+    res.status(400).json({
+      error: error.message || "Failed to create broker",
+      details: error.code,
+    });
   }
 };

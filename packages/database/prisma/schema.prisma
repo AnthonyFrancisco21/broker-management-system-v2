@@ -1,8 +1,5 @@
-// packages/database/prisma/schema.prisma
-
 generator client {
   provider = "prisma-client-js"
-  // NO previewFeatures here
 }
 
 datasource db {
@@ -43,14 +40,14 @@ enum UnitStatus {
 // ==============================
 
 model SystemAccount {
-  id          Int        @id @default(autoincrement()) @map("accountID")
-  email       String     @unique
-  password    String
-  firstName   String?
-  lastName    String?
-  contactNo   String?
-  role        SystemRole @default(MANAGER)
-  createdAt   DateTime   @default(now())
+  id        Int        @id @default(autoincrement()) @map("accountID")
+  email     String     @unique
+  password  String
+  firstName String?
+  lastName  String?
+  contactNo String?
+  role      SystemRole @default(MANAGER)
+  createdAt DateTime   @default(now())
 
   brokersManaged Broker[] @relation("ManagerToBroker")
 
@@ -62,36 +59,37 @@ model SystemAccount {
 // ==============================
 
 model Broker {
-  id               Int       @id @default(autoincrement()) @map("userID")
-  firstName        String?
-  lastName         String?
-  middleName       String?
-  email            String?   @unique
-  password         String?
-  contactNo        String?
-  employerName     String?
-  brokersLicense   String?
-  tin              String?
-  position         String?
-  businessAddress  String?
-  homeAddress      String?
-  birthdate        DateTime? @db.Date
-  emergencyContact String?
-  emergencyNo      String?
-  relation         String?
-  viber            String?
-  messenger        String?
-  whatsapp         String?
-  isDeleted        Int       @default(0) @db.SmallInt
-  
-  managerId        Int?           @map("managerID")
-  manager          SystemAccount? @relation("ManagerToBroker", fields: [managerId], references: [id])
-  
-  clients          Client[]
-  brokerPictures   BrokersPicture[]
-  educBackgrounds  EducBackground[]
-  salesExperiences SalesExperience[]
-  seminars         Seminar[]
+  id                    Int       @id @default(autoincrement()) @map("userID")
+  firstName             String?
+  lastName              String?
+  middleName            String?
+  birthDate             DateTime? @db.Date
+  homeAddress           String?
+  email                 String?   @unique
+  password              String?
+  employerName          String?
+  position              String?
+  businessAddress       String?
+  brokersLicense        String?
+  tin                   String?
+  primaryContact        String?   // Added to match form
+  viber                 String?
+  whatsapp              String?
+  messenger             String?
+  emergencyContactName  String?
+  emergencyContactNo    String?
+  emergencyRelationship String?
+  isDeleted             Int       @default(0) @db.SmallInt
+
+  managerId             Int?           @map("managerID")
+  manager               SystemAccount? @relation("ManagerToBroker", fields: [managerId], references: [id])
+
+  clients               Client[]
+  brokerPictures        BrokersPicture[]
+  educBackgrounds       EducBackground[]
+  salesExperiences      SalesExperience[]
+  seminars              Seminar[]
+  characterReferences   CharacterReference[]
 
   @@map("broker")
 }
@@ -101,19 +99,19 @@ model Broker {
 // ==============================
 
 model Client {
-  id              Int          @id @default(autoincrement()) @map("clientID")
-  firstName       String?
-  lastName        String?
-  email           String?
-  clientStatus    ClientStatus @default(prospect) @map("client_status")
+  id           Int          @id @default(autoincrement()) @map("clientID")
+  firstName    String?
+  lastName     String?
+  email        String?
+  clientStatus ClientStatus @default(prospect) @map("client_status")
   
-  brokerId        Int?     @map("brokerID")
-  broker          Broker?  @relation(fields: [brokerId], references: [id])
+  brokerId     Int?         @map("brokerID")
+  broker       Broker?      @relation(fields: [brokerId], references: [id])
   
-  unitId          Int?     @map("unit_id")
-  unit            Unit?    @relation(fields: [unitId], references: [id])
+  unitId       Int?         @map("unit_id")
+  unit         Unit?        @relation(fields: [unitId], references: [id])
   
-  createdAt       DateTime @default(now()) @map("created_at")
+  createdAt    DateTime     @default(now()) @map("created_at")
 
   @@map("clientstable")
 }
@@ -150,22 +148,38 @@ model BrokersPicture {
 }
 
 model EducBackground {
-  id            Int     @id @default(autoincrement()) @map("educID")
-  highSchool    String?
-  collegeDegree String?
-  brokerId      Int?    @map("userID")
-  broker        Broker? @relation(fields: [brokerId], references: [id])
+  id             Int     @id @default(autoincrement()) @map("educID")
+  highSchool     String?
+  highSchoolYear String?
+  collegeDegree  String?
+  collegeYear    String?
+  brokerId       Int?    @map("userID")
+  broker         Broker? @relation(fields: [brokerId], references: [id])
 
   @@map("educbackground")
 }
 
 model SalesExperience {
-  id         Int     @id @default(autoincrement()) @map("experienceID")
-  experience String? @db.Text
-  brokerId   Int?    @map("userID")
-  broker     Broker? @relation(fields: [brokerId], references: [id])
+  id       Int     @id @default(autoincrement()) @map("experienceID")
+  company  String?
+  position String?
+  years    String?
+  brokerId Int?    @map("userID")
+  broker   Broker? @relation(fields: [brokerId], references: [id])
 
   @@map("salesexperience")
+}
+
+model CharacterReference {
+  id           Int     @id @default(autoincrement()) @map("referenceID")
+  name         String?
+  relationship String?
+  contactNo    String?
+  email        String?
+  brokerId     Int?    @map("userID")
+  broker       Broker? @relation(fields: [brokerId], references: [id])
+
+  @@map("characterreference")
 }
 
 model Seminar {

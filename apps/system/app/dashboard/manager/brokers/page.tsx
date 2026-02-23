@@ -1,16 +1,17 @@
 "use client";
-"use client";
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import RoleGuard from "../../../../components/RoleGuard";
 import DashboardLayout from "../../../../components/DashboardLayout";
+import Modal from "../../../../components/Modal";
+import AddAgentForm from "../../../../components/AddAgentForm";
 
+// 1. FIXED: Changed contactNo to primaryContact
 interface BrokerRow {
   id: number;
   firstName?: string;
   lastName?: string;
   email?: string;
-  contactNo?: string;
+  primaryContact?: string;
   brokersLicense?: string;
   employerName?: string;
 }
@@ -26,6 +27,7 @@ export default function BrokersPage() {
   const [brokers, setBrokers] = useState<BrokerRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchBrokers = async () => {
@@ -60,7 +62,7 @@ export default function BrokersPage() {
             firstName?: string;
             lastName?: string;
             email?: string;
-            contactNo?: string;
+            primaryContact?: string; // 2. FIXED here too
             brokersLicense?: string;
             employerName?: string;
           }) => ({
@@ -68,7 +70,7 @@ export default function BrokersPage() {
             firstName: b.firstName,
             lastName: b.lastName,
             email: b.email,
-            contactNo: b.contactNo,
+            primaryContact: b.primaryContact, // 3. FIXED mapping
             brokersLicense: b.brokersLicense,
             employerName: b.employerName,
           }),
@@ -85,19 +87,63 @@ export default function BrokersPage() {
     fetchBrokers();
   }, []);
 
+  const handleAddAgentSuccess = () => {
+    // Refresh brokers list
+    const fetchBrokers = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/brokers`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          const rows: BrokerRow[] = data.map((b: any) => ({
+            id: b.id,
+            firstName: b.firstName,
+            lastName: b.lastName,
+            email: b.email,
+            primaryContact: b.primaryContact || "-",
+            brokersLicense: b.brokersLicense,
+            employerName: b.employerName,
+          }));
+          setBrokers(rows);
+        }
+      } catch (err) {
+        console.error("Failed to refresh brokers:", err);
+      }
+    };
+
+    fetchBrokers();
+  };
+
   return (
     <RoleGuard allowedRoles={["ADMIN", "MANAGER"]}>
       <DashboardLayout navItems={managerNavItems} roleTitle="Manager Dashboard">
         <div>
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-2xl font-bold">Brokers/Agent List</h1>
-            <Link
-              href="/dashboard/manager/brokers/add"
-              className="px-3 py-1.5 bg-blue-600 text-white rounded text-sm"
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors"
             >
               Add Agent
-            </Link>
+            </button>
           </div>
+
+          <Modal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            title="Add New Agent"
+          >
+            <AddAgentForm
+              onClose={() => setIsModalOpen(false)}
+              onSuccess={handleAddAgentSuccess}
+            />
+          </Modal>
 
           <div className="bg-white p-4 rounded border border-slate-200">
             {loading ? (
@@ -144,7 +190,7 @@ export default function BrokersPage() {
                             {b.email || "-"}
                           </td>
                           <td className="py-2 px-2 text-slate-700">
-                            {b.contactNo || "-"}
+                            {b.primaryContact || "-"}
                           </td>
                           <td className="py-2 px-2 text-slate-700">
                             {b.brokersLicense || "-"}
