@@ -1,5 +1,4 @@
-"use client";
-
+import { X } from "lucide-react";
 import { ReactNode } from "react";
 
 interface ModalProps {
@@ -7,6 +6,7 @@ interface ModalProps {
   onClose: () => void;
   title: string;
   children: ReactNode;
+  maxWidth?: string; // <-- Added this custom property
 }
 
 export default function Modal({
@@ -14,44 +14,39 @@ export default function Modal({
   onClose,
   title,
   children,
+  maxWidth = "max-w-2xl", // <-- Defaults to wide for your forms
 }: ModalProps) {
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+  // Closes modal if you click the dark background overlay
+  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget) onClose();
+  };
 
-      {/* Modal Content */}
-      <div className="relative bg-white rounded-lg shadow-lg w-full max-w-5xl mx-4 max-h-[90vh] flex flex-col dark:bg-slate-800">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 p-4 flex-shrink-0">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-            {title}
-          </h2>
+  return (
+    <div
+      onClick={handleBackdropClick}
+      // I removed backdrop-blur-sm and lightened the dark background to /40
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 sm:p-6 animate-in fade-in duration-200"
+    >
+      {/* We apply the maxWidth prop right here */}
+      <div
+        className={`bg-white rounded-2xl shadow-xl w-full ${maxWidth} max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200`}
+      >
+        {/* Modal Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-white z-10">
+          <h2 className="text-lg font-bold text-slate-800">{title}</h2>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
-            aria-label="Close modal"
+            className="p-1.5 hover:bg-slate-100 rounded-full text-slate-500 transition-colors"
+            title="Close"
           >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
+            <X size={18} />
           </button>
         </div>
 
-        {/* Body - Scrollable */}
-        <div className="p-6 overflow-y-auto flex-1">{children}</div>
+        {/* Modal Body */}
+        <div className="p-5 overflow-y-auto custom-scrollbar">{children}</div>
       </div>
     </div>
   );

@@ -17,6 +17,7 @@ app.use(express.json());
 app.use("/api/brokers", brokerRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/units", unitRoutes);
+app.use("/api/uploads", express.static("uploads")); // Serve uploaded files statically
 
 app.listen(process.env.PORT, () => {
   console.log(`Server running at http://localhost:${process.env.PORT || 5000}`);

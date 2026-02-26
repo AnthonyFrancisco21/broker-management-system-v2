@@ -11,27 +11,34 @@ export const getBrokers = async (req: Request, res: Response) => {
   }
 };
 
-// UPDATE THIS FUNCTION:
+// Explicitly tell TypeScript that 'file' might exist on this specific Request
 export const createBroker = async (
-  req: Request & { file?: any },
+  req: Request & { file?: Express.Multer.File },
   res: Response,
 ) => {
   try {
-    console.log("Received broker creation request");
-    console.log("Body:", req.body);
-    console.log("File:", req.file);
+    const rawData = req.body;
+    const pictureFile = req.file;
 
-    const brokerData = req.body;
-    const pictureFile = req.file; // If using multer
-
-    if (!brokerData.firstName || !brokerData.lastName || !brokerData.email) {
+    if (!rawData.firstName || !rawData.lastName || !rawData.email) {
       return res
         .status(400)
         .json({ error: "Missing required fields: firstName, lastName, email" });
     }
 
+    // Parse the stringified JSON arrays sent by FormData
+    const brokerData = {
+      ...rawData,
+      characterReferences: rawData.characterReferences
+        ? JSON.parse(rawData.characterReferences)
+        : [],
+      seminars: rawData.seminars ? JSON.parse(rawData.seminars) : [],
+      yearsExperience: rawData.yearsExperience
+        ? JSON.parse(rawData.yearsExperience)
+        : [],
+    };
+
     const newBroker = await BrokerService.createBroker(brokerData, pictureFile);
-    console.log("Broker created successfully:", newBroker.id);
     res.status(201).json(newBroker);
   } catch (error: any) {
     console.error("Error creating broker:", error);

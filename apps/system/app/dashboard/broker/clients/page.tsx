@@ -10,7 +10,7 @@ export default function ClientsPage() {
   ];
 
   return (
-    <RoleGuard allowedRoles={["BROKER", "MANAGER", "ADMIN"]}>
+    <RoleGuard allowedRoles={["AGENT", "MANAGER", "ADMIN"]}>
       <DashboardLayout navItems={brokerNavItems} roleTitle="Broker Dashboard">
         <div>
           <h1 className="text-2xl font-bold mb-4">Client Management</h1>

@@ -3,7 +3,7 @@ import { jwtDecode } from "jwt-decode";
 // Define what your Token looks like inside
 interface TokenPayload {
   id: string;
-  role: "ADMIN" | "MANAGER" | "BROKER"; // Match your Prisma roles
+  role: "ADMIN" | "MANAGER" | "AGENT";
   exp: number;
 }
 

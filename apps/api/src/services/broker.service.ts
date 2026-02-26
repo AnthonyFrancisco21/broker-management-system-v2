@@ -4,9 +4,17 @@ import fs from "fs";
 import path from "path";
 
 export const getAllBrokers = async () => {
-  return await prisma.broker.findMany({
-    include: { clients: true },
+  const brokers = await prisma.broker.findMany({
+    include: {
+      clients: true,
+      brokerPictures: true,
+      characterReferences: true,
+      educBackgrounds: true,
+      seminars: true,
+      salesExperiences: true,
+    },
   });
+  return brokers.map(({ password, ...brokerData }) => brokerData);
 };
 
 // Interface matching your frontend Wizard Form payload

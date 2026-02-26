@@ -7,6 +7,7 @@ import {
   Upload,
   Check,
   Image as ImageIcon,
+  X,
 } from "lucide-react";
 
 interface AddAgentFormProps {
@@ -275,44 +276,68 @@ export default function AddAgentForm({
         return;
       }
 
-      const payload = {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        middleName: formData.middleName || null,
-        birthDate: formData.birthDate,
-        homeAddress: formData.homeAddress,
-        email: formData.email,
-        password: formData.password,
-        employerName: formData.employerName,
-        position: formData.position,
-        businessAddress: formData.businessAddress,
-        brokersLicense: formData.brokersLicense,
-        tin: formData.tin || null,
-        primaryContact: formData.primaryContact,
-        viber: formData.viber || null,
-        whatsapp: formData.whatsapp || null,
-        messenger: formData.messenger || null,
-        emergencyContactName: formData.emergencyContactName,
-        emergencyContactNo: formData.emergencyContactNo,
-        emergencyRelationship: formData.emergencyRelationship,
-        characterReferences: formData.characterReferences.filter(
-          (ref) => ref.name && ref.contactNo,
-        ),
-        highSchool: formData.highSchool || null,
-        highSchoolYear: formData.highSchoolYear || null,
-        college: formData.college || null,
-        collegeYear: formData.collegeYear || null,
-        seminars: formData.seminars.filter((s) => s.title && s.date),
-        salesExperience: formData.salesExperience,
-      };
+      // 1. Create FormData instead of a standard JSON object
+      const payload = new FormData();
 
+      // Append standard text fields
+      payload.append("firstName", formData.firstName);
+      payload.append("lastName", formData.lastName);
+      if (formData.middleName)
+        payload.append("middleName", formData.middleName);
+      payload.append("birthDate", formData.birthDate);
+      payload.append("homeAddress", formData.homeAddress);
+      payload.append("email", formData.email);
+      payload.append("password", formData.password);
+      payload.append("employerName", formData.employerName);
+      payload.append("position", formData.position);
+      payload.append("businessAddress", formData.businessAddress);
+      payload.append("brokersLicense", formData.brokersLicense);
+      if (formData.tin) payload.append("tin", formData.tin);
+      payload.append("primaryContact", formData.primaryContact);
+      if (formData.viber) payload.append("viber", formData.viber);
+      if (formData.whatsapp) payload.append("whatsapp", formData.whatsapp);
+      if (formData.messenger) payload.append("messenger", formData.messenger);
+      payload.append("emergencyContactName", formData.emergencyContactName);
+      payload.append("emergencyContactNo", formData.emergencyContactNo);
+      payload.append("emergencyRelationship", formData.emergencyRelationship);
+
+      if (formData.highSchool)
+        payload.append("highSchool", formData.highSchool);
+      if (formData.highSchoolYear)
+        payload.append("highSchoolYear", formData.highSchoolYear);
+      if (formData.college) payload.append("college", formData.college);
+      if (formData.collegeYear)
+        payload.append("collegeYear", formData.collegeYear);
+
+      // Append arrays as stringified JSON
+      payload.append(
+        "characterReferences",
+        JSON.stringify(
+          formData.characterReferences.filter(
+            (ref) => ref.name && ref.contactNo,
+          ),
+        ),
+      );
+      payload.append(
+        "seminars",
+        JSON.stringify(formData.seminars.filter((s) => s.title && s.date)),
+      );
+      payload.append(
+        "yearsExperience",
+        JSON.stringify(formData.salesExperience),
+      );
+
+      // Append the actual File object
+      payload.append("picture", formData.picture);
+
+      // 2. Send the request (DO NOT set Content-Type header)
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/brokers`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
+          // "Content-Type": "application/json" <-- REMOVE THIS. Browser handles it for FormData
         },
-        body: JSON.stringify(payload),
+        body: payload,
       });
 
       if (!res.ok) {
@@ -344,7 +369,16 @@ export default function AddAgentForm({
     "text-sm font-semibold text-slate-900 dark:text-slate-100 uppercase tracking-wider mb-4 border-b border-slate-200 dark:border-[#2B3245] pb-2";
 
   return (
-    <div className="flex flex-col md:flex-row w-full max-w-6xl mx-auto bg-white dark:bg-[#0E1525] text-slate-900 dark:text-slate-100 rounded-xl shadow-2xl overflow-hidden border border-slate-200 dark:border-[#2B3245] h-[90vh] md:h-[80vh]">
+    <div className="relative flex flex-col md:flex-row w-full max-w-6xl mx-auto bg-white dark:bg-[#0E1525] text-slate-900 dark:text-slate-100 rounded-xl shadow-2xl overflow-hidden border border-slate-200 dark:border-[#2B3245] h-[90vh] md:h-[80vh]">
+      {/* Close 'X' Button */}
+      <button
+        onClick={onClose}
+        className="absolute top-3 right-3 md:top-4 md:right-4 z-50 p-2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 bg-white/50 dark:bg-[#0E1525]/50 hover:bg-slate-100 dark:hover:bg-[#1C2333] rounded-full backdrop-blur-sm transition-all"
+        title="Close form"
+      >
+        <X size={20} />
+      </button>
+
       {/* Sidebar Navigation (Desktop) */}
       <div className="hidden md:flex flex-col w-64 bg-slate-50 dark:bg-[#121927] border-r border-slate-200 dark:border-[#2B3245] py-6 px-4 shrink-0">
         <div className="mb-8 px-2">
@@ -394,7 +428,7 @@ export default function AddAgentForm({
       {/* Main Form Area */}
       <div className="flex-1 flex flex-col relative overflow-hidden">
         {/* Mobile Header & Progress */}
-        <div className="md:hidden border-b border-slate-200 dark:border-[#2B3245] bg-white dark:bg-[#0E1525] p-4 shrink-0">
+        <div className="md:hidden border-b border-slate-200 dark:border-[#2B3245] bg-white dark:bg-[#0E1525] p-4 shrink-0 pr-12">
           <div className="flex justify-between items-center mb-2">
             <h2 className="text-lg font-semibold">
               {STEPS[currentStepIndex].title}
@@ -414,7 +448,7 @@ export default function AddAgentForm({
         {/* Scrollable Form Content */}
         <div className="flex-1 overflow-y-auto px-6 py-8 md:px-10">
           <form id="agent-form" onSubmit={handleSubmit} className="max-w-3xl">
-            <div className="mb-8 hidden md:block">
+            <div className="mb-8 hidden md:block pr-8">
               <h3 className="text-2xl font-semibold">
                 {STEPS[currentStepIndex].title}
               </h3>

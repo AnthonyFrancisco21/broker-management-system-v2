@@ -22,7 +22,7 @@ export default function DashboardRoot() {
       case "MANAGER":
         router.push("/dashboard/manager");
         break;
-      case "BROKER":
+      case "AGENT":
         router.push("/dashboard/broker");
         break;
       default:

@@ -130,8 +130,18 @@ model Unit {
   price               Decimal?   @db.Decimal(15, 2)
   unitStatus          UnitStatus @default(available) @map("unit_status")
   clients             Client[]
+  unitPictures UnitPicture[]
 
   @@map("unit_tbl")
+}
+
+model UnitPicture {
+  id        Int     @id @default(autoincrement()) @map("imageID")
+  imagePath String?
+  unitId    Int?    @map("unit_id")
+  unit      Unit?   @relation(fields: [unitId], references: [id], onDelete: Cascade)
+
+  @@map("unit_pictures")
 }
 
 // ==============================
