@@ -1,12 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Users, Target, CheckCircle2 } from "lucide-react";
 
 interface BrokerData {
   id: number;
-  firstName: string;
-  lastName: string;
-  clientCount: number;
+  name: string;
+  totalClients: number;
+  leads: number; // prospect, viewing
+  active: number; // reserved, underNego
+  closed: number; // success
 }
 
 export default function BrokerPerformanceTable() {
@@ -17,7 +20,6 @@ export default function BrokerPerformanceTable() {
   useEffect(() => {
     const fetchBrokers = async () => {
       try {
-        // Ensure we have a token to call protected API
         const token =
           typeof window !== "undefined" ? localStorage.getItem("token") : null;
         if (!token) {
@@ -36,31 +38,39 @@ export default function BrokerPerformanceTable() {
           },
         );
 
-        if (response.status === 401) {
-          setError("Unauthorized");
-          return;
-        }
-
         if (!response.ok) throw new Error("Failed to fetch brokers");
 
         const data = await response.json();
 
         const brokerData = data
-          .map(
-            (broker: {
-              id: number;
-              firstName?: string;
-              lastName?: string;
-              clients?: unknown[];
-            }) => ({
+          .map((broker: any) => {
+            const clients = broker.clients || [];
+
+            let leads = 0;
+            let active = 0;
+            let closed = 0;
+
+            clients.forEach((c: any) => {
+              const status = c.clientStatus?.toLowerCase();
+              if (status === "success") closed++;
+              else if (status === "reserved" || status === "undernego")
+                active++;
+              else if (status === "prospect" || status === "viewing") leads++;
+            });
+
+            return {
               id: broker.id,
-              firstName: broker.firstName || "",
-              lastName: broker.lastName || "",
-              clientCount: broker.clients?.length || 0,
-            }),
-          )
+              name:
+                `${broker.firstName || ""} ${broker.lastName || ""}`.trim() ||
+                "Unknown",
+              totalClients: clients.length,
+              leads,
+              active,
+              closed,
+            };
+          })
           .sort(
-            (a: BrokerData, b: BrokerData) => b.clientCount - a.clientCount,
+            (a: BrokerData, b: BrokerData) => b.totalClients - a.totalClients,
           );
 
         setBrokers(brokerData);
@@ -74,67 +84,102 @@ export default function BrokerPerformanceTable() {
     fetchBrokers();
   }, []);
 
-  if (loading) {
+  if (loading || error) {
     return (
-      <div className="bg-white p-4 rounded border border-slate-200">
-        <h3 className="font-semibold text-slate-900 mb-4">
-          Broker&apos;s Total Clients
-        </h3>
-        <p className="text-slate-500">Loading...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="bg-white p-4 rounded border border-slate-200">
-        <h3 className="font-semibold text-slate-900 mb-4">
-          Broker&apos;s Total Clients
-        </h3>
-        <p className="text-red-600 text-sm">{error}</p>
+      <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-center items-center min-h-[350px]">
+        {loading ? (
+          <>
+            <div className="w-6 h-6 border-2 border-slate-200 border-t-blue-600 rounded-full animate-spin mb-3" />
+            <p className="text-sm font-medium text-slate-500">
+              Loading pipeline data...
+            </p>
+          </>
+        ) : (
+          <p className="text-red-500 text-sm font-medium">{error}</p>
+        )}
       </div>
     );
   }
 
   return (
-    <div className="bg-white p-4 rounded border border-slate-200">
-      <h3 className="font-semibold text-slate-900 mb-4">
-        Broker&apos;s Total Clients
-      </h3>
+    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm h-full flex flex-col">
+      <div className="mb-4">
+        <h2 className="text-lg font-bold text-slate-800">
+          Team Pipeline Overview
+        </h2>
+        <p className="text-xs text-slate-500">
+          Breakdown of each agent's current client funnel.
+        </p>
+      </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-slate-200">
-              <th className="text-left py-2 px-2 font-semibold text-slate-700">
-                Full Name
+      <div className="flex-1 overflow-x-auto custom-scrollbar">
+        <table className="w-full text-sm text-left whitespace-nowrap">
+          <thead className="bg-slate-50/80 sticky top-0 z-10">
+            <tr className="text-slate-500 border-b border-slate-200 text-xs uppercase tracking-wider">
+              <th className="py-3 px-4 font-semibold rounded-tl-lg">
+                Agent Name
               </th>
-              <th className="text-right py-2 px-2 font-semibold text-slate-700">
-                Total Clients
+              <th className="py-3 px-4 font-semibold text-center">
+                <div className="flex items-center justify-center gap-1">
+                  <Users size={14} /> Total
+                </div>
+              </th>
+              <th className="py-3 px-4 font-semibold text-center text-slate-400">
+                Leads
+              </th>
+              <th className="py-3 px-4 font-semibold text-center text-amber-600">
+                <div className="flex items-center justify-center gap-1">
+                  <Target size={14} /> Active
+                </div>
+              </th>
+              <th className="py-3 px-4 font-semibold text-center text-emerald-600 rounded-tr-lg">
+                <div className="flex items-center justify-center gap-1">
+                  <CheckCircle2 size={14} /> Closed
+                </div>
               </th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-slate-100">
             {brokers.length === 0 ? (
               <tr>
-                <td
-                  colSpan={2}
-                  className="py-4 px-2 text-center text-slate-500"
-                >
-                  No brokers available
+                <td colSpan={5} className="py-8 text-center text-slate-500">
+                  No team pipeline data available
                 </td>
               </tr>
             ) : (
               brokers.map((broker) => (
                 <tr
                   key={broker.id}
-                  className="border-b border-slate-100 hover:bg-slate-50 transition-colors"
+                  className="hover:bg-slate-50/50 transition-colors"
                 >
-                  <td className="py-2 px-2 text-slate-900">
-                    {broker.firstName} {broker.lastName}
+                  <td className="py-3 px-4 font-medium text-slate-900">
+                    {broker.name}
                   </td>
-                  <td className="py-2 px-2 text-right text-slate-900 font-medium">
-                    {broker.clientCount}
+                  <td className="py-3 px-4 text-center">
+                    <span className="bg-slate-100 text-slate-700 py-1 px-2.5 rounded-full font-semibold text-xs">
+                      {broker.totalClients}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4 text-center text-slate-500 font-medium">
+                    {broker.leads}
+                  </td>
+                  <td className="py-3 px-4 text-center">
+                    {broker.active > 0 ? (
+                      <span className="text-amber-600 font-bold">
+                        {broker.active}
+                      </span>
+                    ) : (
+                      <span className="text-slate-300">-</span>
+                    )}
+                  </td>
+                  <td className="py-3 px-4 text-center">
+                    {broker.closed > 0 ? (
+                      <span className="text-emerald-600 font-bold">
+                        {broker.closed}
+                      </span>
+                    ) : (
+                      <span className="text-slate-300">-</span>
+                    )}
                   </td>
                 </tr>
               ))

@@ -12,6 +12,7 @@ import {
   Image as ImageIcon,
   ChevronLeft,
   ChevronRight,
+  User,
 } from "lucide-react";
 
 interface UnitDetailsModalProps {
@@ -27,7 +28,6 @@ export default function UnitDetailsModal({
 }: UnitDetailsModalProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState<number>(0);
 
-  // Reset the image index whenever a new unit is opened
   useEffect(() => {
     if (isOpen) {
       setCurrentImageIndex(0);
@@ -44,7 +44,6 @@ export default function UnitDetailsModal({
   const isAvailable = unit.unitStatus?.toLowerCase() === "available";
   const hasImages = unit.unitPictures && unit.unitPictures.length > 0;
 
-  // Navigation Handlers for the Slider
   const handleNextImage = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (hasImages) {
@@ -68,14 +67,11 @@ export default function UnitDetailsModal({
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 p-4 sm:p-6 transition-opacity"
       onClick={onClose}
     >
-      {/* Modal Container */}
       <div
         className="bg-white w-full max-w-6xl rounded-xl shadow-2xl overflow-hidden flex flex-col md:flex-row max-h-[90vh] min-h-[600px] animate-in fade-in zoom-in-95 duration-300"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Left Side: Image Slider & Thumbnails Area */}
         <div className="w-full md:w-3/5 bg-slate-50 flex flex-col relative group">
-          {/* Main Image */}
           <div className="relative flex-1 min-h-[350px] md:min-h-[500px] flex items-center justify-center overflow-hidden bg-slate-100">
             {hasImages ? (
               <>
@@ -85,7 +81,6 @@ export default function UnitDetailsModal({
                   className="w-full h-full object-contain transition-opacity duration-300 bg-black/5"
                 />
 
-                {/* Arrow Controls */}
                 {unit.unitPictures.length > 1 && (
                   <>
                     <button
@@ -101,7 +96,6 @@ export default function UnitDetailsModal({
                       <ChevronRight size={24} className="ml-0.5" />
                     </button>
 
-                    {/* Image Counter Pill */}
                     <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md text-white text-xs px-3 py-1.5 rounded-full font-medium tracking-wide shadow-sm">
                       {currentImageIndex + 1} / {unit.unitPictures.length}
                     </div>
@@ -118,7 +112,6 @@ export default function UnitDetailsModal({
             )}
           </div>
 
-          {/* Bottom Thumbnails Strip */}
           {hasImages && unit.unitPictures.length > 1 && (
             <div className="h-24 bg-white border-t border-slate-200 p-3 flex gap-3 overflow-x-auto custom-scrollbar">
               {unit.unitPictures.map((pic: any, index: number) => {
@@ -145,9 +138,7 @@ export default function UnitDetailsModal({
           )}
         </div>
 
-        {/* Right Side: Details */}
         <div className="w-full md:w-2/5 bg-white flex flex-col relative overflow-y-auto custom-scrollbar border-l border-slate-100">
-          {/* Close Button */}
           <button
             onClick={onClose}
             className="cursor-pointer absolute top-5 right-5 p-2 text-slate-400 hover:text-slate-800 bg-slate-50 hover:bg-slate-100 rounded-full transition-colors z-10"
@@ -156,14 +147,13 @@ export default function UnitDetailsModal({
           </button>
 
           <div className="p-8 md:p-10 flex flex-col h-full">
-            {/* Header: Identity */}
-            <div className="mb-10">
+            <div className="mb-8">
               <div className="flex items-center gap-2 mb-4">
                 <span
                   className={`inline-flex items-center px-3 py-1 rounded border text-xs font-medium uppercase tracking-wider ${
                     isAvailable
                       ? "bg-emerald-50 text-emerald-600 border-emerald-200"
-                      : "bg-slate-50 text-slate-500 border-slate-200"
+                      : "bg-blue-50 text-blue-600 border-blue-200"
                   }`}
                 >
                   {unit.unitStatus || "Unknown"}
@@ -181,7 +171,23 @@ export default function UnitDetailsModal({
               </p>
             </div>
 
-            {/* Financials */}
+            {/* NEW: Client Information Display */}
+            {unit.clientName && !isAvailable && (
+              <div className="mb-8 p-4 bg-slate-50 rounded-lg border border-slate-100 flex items-start gap-3">
+                <div className="p-2 bg-white rounded-full shadow-sm">
+                  <User size={20} className="text-blue-500" />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-1">
+                    Current Client
+                  </p>
+                  <p className="text-base font-medium text-slate-800">
+                    {unit.clientName}
+                  </p>
+                </div>
+              </div>
+            )}
+
             <div className="mb-12">
               <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-5">
                 Financial Details
@@ -214,7 +220,6 @@ export default function UnitDetailsModal({
               </div>
             </div>
 
-            {/* Specifications */}
             <div className="mt-auto pt-4">
               <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-6">
                 Specifications

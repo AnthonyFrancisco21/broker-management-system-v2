@@ -30,6 +30,9 @@ enum ClientStatus {
 
 enum UnitStatus {
   available
+  viewing
+  reserved
+  underNego
   occupied
 
   @@map("unit_status_enum")
@@ -72,7 +75,7 @@ model Broker {
   businessAddress       String?
   brokersLicense        String?
   tin                   String?
-  primaryContact        String?   // Added to match form
+  primaryContact        String?   
   viber                 String?
   whatsapp              String?
   messenger             String?
@@ -121,16 +124,16 @@ model Client {
 // ==============================
 
 model Unit {
-  id                  Int        @id @default(autoincrement()) @map("unit_id")
-  unitType            String?    @map("unit_type")
-  roomNo              String?    @map("room_no")
+  id                  Int          @id @default(autoincrement()) @map("unit_id")
+  unitType            String?      @map("unit_type")
+  roomNo              String?      @map("room_no")
   size                String?
   floor               Int?
-  installmentPerMonth Decimal?   @map("installment_per_month") @db.Decimal(10, 2)
-  price               Decimal?   @db.Decimal(15, 2)
-  unitStatus          UnitStatus @default(available) @map("unit_status")
+  installmentPerMonth Decimal?     @map("installment_per_month") @db.Decimal(10, 2)
+  price               Decimal?     @db.Decimal(15, 2)
+  unitStatus          UnitStatus   @default(available) @map("unit_status")
   clients             Client[]
-  unitPictures UnitPicture[]
+  unitPictures        UnitPicture[]
 
   @@map("unit_tbl")
 }

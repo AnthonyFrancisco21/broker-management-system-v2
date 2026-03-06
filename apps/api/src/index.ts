@@ -3,6 +3,7 @@ import cors from "cors";
 import brokerRoutes from "./routes/broker.routes";
 import authRoutes from "./routes/auth.routes";
 import unitRoutes from "./routes/unit.routes";
+import clientRoutes from "./routes/client.routes";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -15,6 +16,7 @@ app.use(express.json());
 // ROUTES
 // New Version (Matches your frontend!)
 app.use("/api/brokers", brokerRoutes);
+app.use("/api/clients", clientRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/units", unitRoutes);
 app.use("/api/uploads", express.static("uploads")); // Serve uploaded files statically

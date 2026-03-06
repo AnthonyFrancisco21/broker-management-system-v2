@@ -15,6 +15,17 @@ export const getAllUnits = async () => {
   });
 };
 
+// GET SINGLE UNIT BY ID (Added this to fix your frontend silent error)
+export const getUnitById = async (id: number) => {
+  return await prisma.unit.findUnique({
+    where: { id },
+    include: {
+      clients: true,
+      unitPictures: true,
+    },
+  });
+};
+
 // CREATE UNIT
 export const createUnit = async (data: any, imagePaths: string[]) => {
   return await prisma.unit.create({
@@ -46,7 +57,6 @@ export const updateUnit = async (
   newImagePaths: string[],
   deletedImageIds: number[] = [],
 ) => {
-  // 1. If there are images being deleted, we must delete the physical files first
   if (deletedImageIds.length > 0) {
     const unit = await prisma.unit.findUnique({
       where: { id },
@@ -54,12 +64,10 @@ export const updateUnit = async (
     });
 
     if (unit) {
-      // Find the specific pictures that match the deleted IDs
       const picturesToDelete = unit.unitPictures.filter((pic: any) =>
         deletedImageIds.includes(pic.id),
       );
 
-      // Delete them from the hard drive
       picturesToDelete.forEach((pic: any) => {
         if (pic.imagePath) {
           const fullPath = path.join(__dirname, "../../", pic.imagePath);
@@ -75,7 +83,6 @@ export const updateUnit = async (
     }
   }
 
-  // 2. Now update the database as usual
   return await prisma.unit.update({
     where: { id },
     data: {
@@ -105,7 +112,6 @@ export const updateUnit = async (
 
 // DELETE UNIT
 export const deleteUnit = async (id: number) => {
-  // 1. Fetch the unit BEFORE deleting it so we know what images it has
   const unit = await prisma.unit.findUnique({
     where: { id },
     include: { unitPictures: true },
@@ -115,20 +121,16 @@ export const deleteUnit = async (id: number) => {
     throw new Error("Unit not found");
   }
 
-  // 2. Delete the unit from the database
   const deletedUnit = await prisma.unit.delete({
     where: { id },
   });
 
-  // 3. Delete the physical image files from the uploads folder
   unit.unitPictures.forEach((pic: any) => {
     if (pic.imagePath) {
-      // Resolving the exact path to apps/api/uploads/
       const fullPath = path.join(__dirname, "../../", pic.imagePath);
-
       if (fs.existsSync(fullPath)) {
         try {
-          fs.unlinkSync(fullPath); // This deletes the actual file
+          fs.unlinkSync(fullPath);
         } catch (err) {
           console.error("Failed to delete physical file:", fullPath);
         }

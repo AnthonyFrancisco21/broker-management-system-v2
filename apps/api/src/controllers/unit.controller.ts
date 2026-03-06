@@ -12,6 +12,26 @@ export const getUnits = async (req: Request, res: Response) => {
   }
 };
 
+// GET SINGLE UNIT
+export const getUnit = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const id = parseInt(req.params.id as string, 10);
+    if (isNaN(id)) {
+      res.status(400).json({ error: "Invalid unit ID" });
+      return;
+    }
+    const unit = await UnitServices.getUnitById(id);
+    if (!unit) {
+      res.status(404).json({ error: "Unit not found" });
+      return;
+    }
+    res.json(unit);
+  } catch (error) {
+    console.error("Get Unit Error:", error);
+    res.status(500).json({ error: "Failed to fetch unit" });
+  }
+};
+
 // CREATE
 export const createUnit = async (
   req: Request,
@@ -19,7 +39,6 @@ export const createUnit = async (
 ): Promise<void> => {
   try {
     const files = req.files as Express.Multer.File[];
-    // Use the filename provided by multer to construct safe relative paths
     const imagePaths = files
       ? files.map((file) => `uploads/${file.filename}`)
       : [];
@@ -50,7 +69,6 @@ export const updateUnit = async (
       ? files.map((file) => `uploads/${file.filename}`)
       : [];
 
-    // Parse the deletedImages array sent from the frontend FormData
     let deletedImageIds: number[] = [];
     if (req.body.deletedImages) {
       try {

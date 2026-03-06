@@ -30,7 +30,30 @@ interface UnitRow {
   price?: number;
   unitStatus?: string;
   unitPictures?: any[];
+  clientName?: string;
 }
+
+// Helper to find the active client from the clients array
+const getActiveClientName = (clients?: any[]) => {
+  if (!clients || !Array.isArray(clients)) return undefined;
+
+  const activeStatus = [
+    "viewing",
+    "reserved",
+    "undernego",
+    "success",
+    "occupied",
+  ];
+  const activeClient = clients.find(
+    (c) =>
+      c.clientStatus && activeStatus.includes(c.clientStatus.toLowerCase()),
+  );
+
+  if (activeClient) {
+    return `${activeClient.firstName || ""} ${activeClient.lastName || ""}`.trim();
+  }
+  return undefined;
+};
 
 export default function UnitsPage() {
   const managerNavItems = [
@@ -90,6 +113,7 @@ export default function UnitsPage() {
         price: u.price,
         unitStatus: u.unitStatus,
         unitPictures: u.unitPictures || [],
+        clientName: getActiveClientName(u.clients),
       }));
 
       setUnits(rows);
@@ -104,7 +128,6 @@ export default function UnitsPage() {
     loadUnits();
   }, []);
 
-  // Filter Logic
   const filteredUnits = useMemo(() => {
     if (!searchTerm.trim()) return units;
     const term = searchTerm.toLowerCase();
@@ -112,7 +135,8 @@ export default function UnitsPage() {
       return (
         u.unitType?.toLowerCase().includes(term) ||
         u.roomNo?.toLowerCase().includes(term) ||
-        u.unitStatus?.toLowerCase().includes(term)
+        u.unitStatus?.toLowerCase().includes(term) ||
+        u.clientName?.toLowerCase().includes(term)
       );
     });
   }, [units, searchTerm]);
@@ -144,6 +168,7 @@ export default function UnitsPage() {
           price: freshData.price,
           unitStatus: freshData.unitStatus,
           unitPictures: freshData.unitPictures || [],
+          clientName: getActiveClientName(freshData.clients),
         };
       }
     } catch (err) {
@@ -206,9 +231,14 @@ export default function UnitsPage() {
     const s = (status || "").toLowerCase();
     if (s.includes("available"))
       return "bg-emerald-50 text-emerald-700 border-emerald-200";
-    if (s.includes("reserved"))
+    if (
+      s.includes("reserved") ||
+      s.includes("undernego") ||
+      s.includes("viewing")
+    )
       return "bg-amber-50 text-amber-700 border-amber-200";
-    if (s.includes("sold")) return "bg-blue-50 text-blue-700 border-blue-200";
+    if (s.includes("sold") || s.includes("occupied"))
+      return "bg-blue-50 text-blue-700 border-blue-200";
     return "bg-slate-100 text-slate-700 border-slate-200";
   };
 
@@ -236,7 +266,7 @@ export default function UnitsPage() {
                 />
                 <input
                   type="text"
-                  placeholder="Search unit, room, or status..."
+                  placeholder="Search unit, room, or client..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
@@ -413,13 +443,21 @@ export default function UnitsPage() {
                           </td>
 
                           <td className="py-3 px-6">
-                            <span
-                              className={`inline-flex items-center px-2 py-1 rounded-md border text-xs font-medium ${getStatusColor(
-                                u.unitStatus,
-                              )}`}
-                            >
-                              {u.unitStatus || "Unknown"}
-                            </span>
+                            <div className="flex flex-col items-start gap-1">
+                              <span
+                                className={`inline-flex items-center px-2 py-1 rounded-md border text-xs font-medium ${getStatusColor(
+                                  u.unitStatus,
+                                )}`}
+                              >
+                                {u.unitStatus || "Unknown"}
+                              </span>
+                              {/* Display Client Name gently underneath if one exists */}
+                              {u.clientName && (
+                                <span className="text-xs text-slate-500 font-medium bg-slate-100 px-2 py-0.5 rounded">
+                                  {u.clientName}
+                                </span>
+                              )}
+                            </div>
                           </td>
 
                           <td className="py-3 px-6">
