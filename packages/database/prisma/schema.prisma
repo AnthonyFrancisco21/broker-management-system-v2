@@ -14,7 +14,6 @@ datasource db {
 enum SystemRole {
   ADMIN
   MANAGER
-  AGENT
 }
 
 enum ClientStatus {
@@ -53,12 +52,13 @@ model SystemAccount {
   createdAt DateTime   @default(now())
 
   brokersManaged Broker[] @relation("ManagerToBroker")
+  clientsManaged Client[] @relation("ManagerToClient")
 
   @@map("system_accounts")
 }
 
 // ==============================
-// 3. BROKERS
+// 3. BROKERS (Now just an entity, no login)
 // ==============================
 
 model Broker {
@@ -69,7 +69,6 @@ model Broker {
   birthDate             DateTime? @db.Date
   homeAddress           String?
   email                 String?   @unique
-  password              String?
   employerName          String?
   position              String?
   businessAddress       String?
@@ -108,9 +107,14 @@ model Client {
   email        String?
   clientStatus ClientStatus @default(prospect) @map("client_status")
   
+  // Who is the agent that brought them in? (Optional now)
   brokerId     Int?         @map("brokerID")
   broker       Broker?      @relation(fields: [brokerId], references: [id])
   
+  // Who is the manager handling the reservation?
+  managerId    Int?         @map("handlingManagerID")
+  manager      SystemAccount? @relation("ManagerToClient", fields: [managerId], references: [id])
+
   unitId       Int?         @map("unit_id")
   unit         Unit?        @relation(fields: [unitId], references: [id])
   
@@ -132,6 +136,7 @@ model Unit {
   installmentPerMonth Decimal?     @map("installment_per_month") @db.Decimal(10, 2)
   price               Decimal?     @db.Decimal(15, 2)
   unitStatus          UnitStatus   @default(available) @map("unit_status")
+  
   clients             Client[]
   unitPictures        UnitPicture[]
 
@@ -148,7 +153,7 @@ model UnitPicture {
 }
 
 // ==============================
-// 6. DETAILS
+// 6. DETAILS (Unchanged)
 // ==============================
 
 model BrokersPicture {
@@ -156,7 +161,6 @@ model BrokersPicture {
   imagePath String?
   brokerId  Int?    @map("userID")
   broker    Broker? @relation(fields: [brokerId], references: [id])
-
   @@map("brokerspicture")
 }
 
@@ -168,7 +172,6 @@ model EducBackground {
   collegeYear    String?
   brokerId       Int?    @map("userID")
   broker         Broker? @relation(fields: [brokerId], references: [id])
-
   @@map("educbackground")
 }
 
@@ -179,7 +182,6 @@ model SalesExperience {
   years    String?
   brokerId Int?    @map("userID")
   broker   Broker? @relation(fields: [brokerId], references: [id])
-
   @@map("salesexperience")
 }
 
@@ -191,7 +193,6 @@ model CharacterReference {
   email        String?
   brokerId     Int?    @map("userID")
   broker       Broker? @relation(fields: [brokerId], references: [id])
-
   @@map("characterreference")
 }
 
@@ -202,6 +203,5 @@ model Seminar {
   venue    String?
   brokerId Int?      @map("userID")
   broker   Broker?   @relation(fields: [brokerId], references: [id])
-
   @@map("seminarstable")
 }

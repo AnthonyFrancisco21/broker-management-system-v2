@@ -1,132 +1,193 @@
 "use client";
 
-import { Unit, UNIT_SPECS } from "../lib/floorData";
+import { useEffect } from "react";
+import { X } from "lucide-react";
+import { Unit, UNIT_SPECS, FLOOR_LABELS } from "../lib/floorData";
 
-interface UnitModalProps {
-  unit: Unit | null;
+interface Props {
+  unit: Unit;
   onClose: () => void;
   onReserve: (unit: Unit) => void;
 }
 
-const STATUS_CONFIG = {
-  available: { label: "Available", dot: "#10B981" },
-  reserved: { label: "Reserved", dot: "#F59E0B" },
-  sold: { label: "Sold", dot: "#EF4444" },
-};
+const TYPE_THEME = {
+  "S-24": {
+    bg: "#A8CBE8",
+    border: "#4A7EA0",
+    text: "#1A3554",
+    badge: "#4A7EA0",
+  },
+  "S-28": {
+    bg: "#F8CE8F",
+    border: "#B8821E",
+    text: "#5A2E00",
+    badge: "#B8821E",
+  },
+  "S-36": {
+    bg: "#BEDD9A",
+    border: "#5E9432",
+    text: "#233E09",
+    badge: "#5E9432",
+  },
+  "S-40": {
+    bg: "#F5A84A",
+    border: "#B05E0A",
+    text: "#4A2000",
+    badge: "#B05E0A",
+  },
+} as const;
 
-const FLOOR_NAMES: Record<number, string> = {
-  1: "Upper Ground",
-  2: "Second",
-  3: "Third",
-  4: "Fourth",
-  5: "Fifth",
-  6: "Sixth",
-  7: "Seventh",
-  8: "Eighth",
-  9: "Ninth",
-  10: "Tenth",
-};
+const STATUS_THEME = {
+  available: { dot: "#22C55E", label: "Available", labelClr: "#166534" },
+  reserved: {
+    dot: "#F59E0B",
+    label: "Currently Reserved",
+    labelClr: "#92400E",
+  },
+  sold: { dot: "#EF4444", label: "Unit Sold", labelClr: "#991B1B" },
+} as const;
 
-export default function UnitModal({
-  unit,
-  onClose,
-  onReserve,
-}: UnitModalProps) {
-  if (!unit) return null;
+export default function UnitModal({ unit, onClose, onReserve }: Props) {
+  const th = TYPE_THEME[unit.type as keyof typeof TYPE_THEME];
+  const st = STATUS_THEME[unit.status];
+  const sp = UNIT_SPECS[unit.type];
 
-  const spec = UNIT_SPECS[unit.type];
-  const status = STATUS_CONFIG[unit.status];
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [onClose]);
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center px-4"
-      style={{
-        backgroundColor: "rgba(0,0,0,0.6)",
-        backdropFilter: "blur(4px)",
-      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(10,8,4,0.65)", backdropFilter: "blur(5px)" }}
       onClick={onClose}
     >
       <div
-        className="relative bg-white w-full max-w-sm shadow-2xl"
-        style={{ borderTop: "3px solid #B8975A" }}
+        className="relative w-full max-w-sm overflow-hidden shadow-2xl"
+        style={{ background: "#FDFBF8", borderRadius: "16px" }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="px-8 pt-7 pb-5 border-b border-[#f0ece6]">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="font-['Cormorant_Garamond',_serif] text-[10px] tracking-[0.28em] text-[#B8975A] uppercase mb-1">
-                Unit {unit.roomNumber}
-              </p>
-              <h2 className="font-['Cormorant_Garamond',_serif] text-[28px] font-semibold text-slate-900 leading-none">
-                {unit.type}{" "}
-                <span className="font-light text-slate-400">Suite</span>
-              </h2>
-            </div>
-            <button
-              onClick={onClose}
-              className="text-slate-300 hover:text-slate-600 transition-colors text-xl leading-none pt-1"
+        {/* Coloured header */}
+        <div
+          className="px-6 pt-6 pb-5"
+          style={{ background: th.bg, borderBottom: `3px solid ${th.border}` }}
+        >
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-black/10 transition-colors"
+          >
+            <X size={18} color={th.text} />
+          </button>
+          <div className="flex items-center gap-3">
+            <div
+              className="px-3 py-1.5 rounded-lg text-white font-bold tracking-widest text-lg"
+              style={{
+                fontFamily: "'Cormorant Garamond',serif",
+                background: th.badge,
+              }}
             >
-              ✕
-            </button>
+              {unit.type}
+            </div>
+            <div>
+              <h2
+                className="text-2xl font-bold leading-none"
+                style={{
+                  fontFamily: "'Cormorant Garamond',serif",
+                  color: th.text,
+                }}
+              >
+                Room {unit.roomNumber}
+              </h2>
+              <p
+                className="text-sm mt-0.5 opacity-70"
+                style={{
+                  fontFamily: "'Cormorant Garamond',serif",
+                  color: th.text,
+                }}
+              >
+                {FLOOR_LABELS[unit.floor] ?? `Floor ${unit.floor}`}
+              </p>
+            </div>
           </div>
         </div>
 
         {/* Body */}
-        <div className="px-8 py-6">
-          {/* Stats grid */}
-          <div className="grid grid-cols-3 mb-6 border border-[#ece9e3]">
+        <div className="px-6 py-5 flex flex-col gap-4">
+          {/* Stat tiles */}
+          <div className="grid grid-cols-3 gap-2">
             {[
-              {
-                label: "Floor",
-                value: unit.floor === 1 ? "UG" : String(unit.floor),
-              },
-              { label: "Area", value: `${spec.sqm} sqm` },
-              { label: "Type", value: "Studio" },
-            ].map(({ label, value }, i) => (
+              { lbl: "Floor", val: unit.floor === 1 ? "UG" : `${unit.floor}F` },
+              { lbl: "Area", val: `${sp.sqm} m²` },
+              { lbl: "Type", val: unit.type },
+            ].map(({ lbl, val }) => (
               <div
-                key={label}
-                className={`py-4 text-center ${i !== 2 ? "border-r border-[#ece9e3]" : ""} bg-[#faf9f7]`}
+                key={lbl}
+                className="rounded-xl bg-[#F5F2EC] py-3 text-center"
               >
-                <p className="font-['Cormorant_Garamond',_serif] text-[9px] tracking-[0.22em] text-slate-400 uppercase mb-1.5">
-                  {label}
+                <p className="text-[9px] tracking-[0.2em] uppercase text-slate-400 mb-1">
+                  {lbl}
                 </p>
-                <p className="font-['Cormorant_Garamond',_serif] text-lg font-semibold text-slate-900 leading-none">
-                  {value}
+                <p
+                  className="text-lg font-bold text-slate-800 leading-none"
+                  style={{ fontFamily: "'Cormorant Garamond',serif" }}
+                >
+                  {val}
                 </p>
               </div>
             ))}
           </div>
 
           {/* Status */}
-          <div className="flex items-center gap-2.5 mb-6">
-            <div
-              className="w-2 h-2 rounded-full shrink-0"
-              style={{ background: status.dot }}
+          <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-[#F5F2EC]">
+            <span
+              className="w-2.5 h-2.5 rounded-full shrink-0 animate-pulse"
+              style={{ background: st.dot }}
             />
-            <span className="font-['Cormorant_Garamond',_serif] text-[12px] tracking-[0.15em] text-slate-500 uppercase">
-              {status.label}
+            <span
+              className="text-sm font-semibold tracking-wide"
+              style={{
+                fontFamily: "'Cormorant Garamond',serif",
+                color: st.labelClr,
+              }}
+            >
+              {st.label}
             </span>
           </div>
 
           {/* Description */}
-          <p className="font-sans text-[13px] text-slate-400 leading-relaxed font-light mb-7">
-            {spec.label} on the {FLOOR_NAMES[unit.floor]}{" "}
-            {unit.floor === 1 ? "Level" : "Floor"}. Premium finishes, thoughtful
-            layout, ideal for modern urban living.
+          <p
+            className="text-sm text-slate-500 leading-relaxed"
+            style={{ fontFamily: "'Cormorant Garamond',serif" }}
+          >
+            {sp.description}
           </p>
 
           {/* CTA */}
           {unit.status === "available" ? (
             <button
               onClick={() => onReserve(unit)}
-              className="w-full py-3.5 bg-slate-900 hover:bg-[#B8975A] text-white font-['Cormorant_Garamond',_serif] text-[11px] tracking-[0.3em] uppercase transition-colors duration-200"
+              className="w-full py-3.5 rounded-xl font-bold text-base tracking-[0.12em] uppercase transition-all duration-150 hover:opacity-90 active:scale-[0.98] text-white"
+              style={{
+                fontFamily: "'Cormorant Garamond',serif",
+                background: "#B8975A",
+              }}
             >
               Reserve This Unit
             </button>
           ) : (
-            <div className="w-full py-3.5 bg-slate-100 text-slate-400 font-['Cormorant_Garamond',_serif] text-[11px] tracking-[0.3em] uppercase text-center">
-              Not Available
+            <div
+              className="w-full py-3.5 rounded-xl font-bold text-base tracking-[0.12em] uppercase text-center"
+              style={{
+                fontFamily: "'Cormorant Garamond',serif",
+                background: "#E8E4DC",
+                color: "#9A8E7E",
+              }}
+            >
+              {unit.status === "reserved" ? "Currently Reserved" : "Unit Sold"}
             </div>
           )}
         </div>
