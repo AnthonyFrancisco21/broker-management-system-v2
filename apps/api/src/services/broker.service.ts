@@ -14,7 +14,7 @@ export const getAllBrokers = async () => {
       salesExperiences: true,
     },
   });
-  return brokers.map(({ password, ...brokerData }) => brokerData);
+  return brokers.map(({ ...brokerData }) => brokerData);
 };
 
 // Interface matching your frontend Wizard Form payload
@@ -98,7 +98,7 @@ export const createBroker = async (
       lastName: data.lastName,
       middleName: data.middleName || null,
       email: data.email,
-      password: hashedPassword,
+
       birthDate: data.birthDate ? new Date(data.birthDate) : null,
       homeAddress: data.homeAddress,
       employerName: data.employerName,

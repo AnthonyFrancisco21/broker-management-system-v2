@@ -6,6 +6,7 @@ import RoleGuard from "../../../../components/RoleGuard";
 import DashboardLayout from "../../../../components/DashboardLayout";
 import Modal from "../../../../components/Modal";
 import ConfirmDeleteModal from "../../../../components/ConfirmDeleteModal";
+import { managerNavItems } from "../../../../lib/navigation";
 
 // ACTUAL COMPONENTS INTEGRATED HERE:
 import AddClientForm from "../../../../components/AddClientForm";
@@ -27,12 +28,6 @@ export interface ClientRow {
 }
 
 export default function ClientsPage() {
-  const brokerNavItems = [
-    { label: "Dashboard", href: "/dashboard/broker" },
-    { label: "Client Management", href: "/dashboard/broker/clients" },
-    { label: "Unit Management", href: "/dashboard/broker/units" },
-  ];
-
   const [clients, setClients] = useState<ClientRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -168,8 +163,8 @@ export default function ClientsPage() {
   };
 
   return (
-    <RoleGuard allowedRoles={["AGENT", "MANAGER", "ADMIN"]}>
-      <DashboardLayout navItems={brokerNavItems} roleTitle="Broker Dashboard">
+    <RoleGuard allowedRoles={["MANAGER", "ADMIN"]}>
+      <DashboardLayout navItems={managerNavItems} roleTitle="Broker Dashboard">
         <div className="flex flex-col h-full relative">
           {/* ADD CLIENT MODAL */}
           <Modal

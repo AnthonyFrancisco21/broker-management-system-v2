@@ -7,6 +7,7 @@ import DashboardLayout from "../../../../components/DashboardLayout";
 import UnitStatusPieChart from "../../../../components/UnitStatusPieChart";
 import ClientPipelineBarChart from "../../../../components/ClientPipelineBarChart";
 import SalesGrowthLineChart from "../../../../components/SalesGrowthLineChart";
+import { managerNavItems } from "../../../../lib/navigation";
 
 interface ClientData {
   clientStatus: string;
@@ -19,13 +20,6 @@ interface UnitData {
 }
 
 export default function StatisticsPage() {
-  const managerNavItems = [
-    { label: "Dashboard", href: "/dashboard/manager" },
-    { label: "Brokers/Agent List", href: "/dashboard/manager/brokers" },
-    { label: "Statistics", href: "/dashboard/manager/statistics" },
-    { label: "Unit Management", href: "/dashboard/manager/units" },
-  ];
-
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 

@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 
-const JWT_SECRET = process.env.JWT_SECRET || "qwhrqyq123qwse1gcq4rbcq34r2#@!";
+const JWT_SECRET = process.env.JWT_SECRET || "qwhrqyq123qwse1gcq4rbcq34r2#@!"; //Remove this shit after------------------------
 
 // This interface tells TypeScript what the decoded token looks like
 interface AuthPayload {

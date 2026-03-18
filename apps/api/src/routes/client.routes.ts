@@ -8,7 +8,7 @@ const router = Router();
 router.get(
   "/",
   authenticate,
-  authorize(["ADMIN", "MANAGER", "AGENT"]),
+  authorize(["ADMIN", "MANAGER"]),
   ClientController.getClients,
 );
 
@@ -16,7 +16,7 @@ router.get(
 router.post(
   "/",
   authenticate,
-  authorize(["ADMIN", "MANAGER", "AGENT"]),
+  authorize(["ADMIN", "MANAGER"]),
   ClientController.createClient,
 );
 
@@ -24,7 +24,7 @@ router.post(
 router.patch(
   "/:id",
   authenticate,
-  authorize(["ADMIN", "MANAGER", "AGENT"]),
+  authorize(["ADMIN", "MANAGER"]),
   ClientController.updateClient,
 );
 
@@ -32,7 +32,7 @@ router.patch(
 router.delete(
   "/:id",
   authenticate,
-  authorize(["ADMIN", "MANAGER", "AGENT"]),
+  authorize(["ADMIN", "MANAGER"]),
   ClientController.deleteClient,
 );
 

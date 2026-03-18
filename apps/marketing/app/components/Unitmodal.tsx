@@ -35,6 +35,12 @@ const TYPE_THEME = {
     text: "#4A2000",
     badge: "#B05E0A",
   },
+  "S-75": {
+    bg: "#EAE5FA", // Subtle lavender background
+    border: "#7C3AED",
+    text: "#4C1D95",
+    badge: "#7C3AED",
+  },
 } as const;
 
 const STATUS_THEME = {
@@ -51,6 +57,7 @@ export default function UnitModal({ unit, onClose, onReserve }: Props) {
   const th = TYPE_THEME[unit.type as keyof typeof TYPE_THEME];
   const st = STATUS_THEME[unit.status];
   const sp = UNIT_SPECS[unit.type];
+  const isMultiPurpose = unit.type === "S-75";
 
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
@@ -122,7 +129,7 @@ export default function UnitModal({ unit, onClose, onReserve }: Props) {
             {[
               { lbl: "Floor", val: unit.floor === 1 ? "UG" : `${unit.floor}F` },
               { lbl: "Area", val: `${sp.sqm} m²` },
-              { lbl: "Type", val: unit.type },
+              { lbl: "Type", val: isMultiPurpose ? "Event" : unit.type },
             ].map(({ lbl, val }) => (
               <div
                 key={lbl}
@@ -141,22 +148,24 @@ export default function UnitModal({ unit, onClose, onReserve }: Props) {
             ))}
           </div>
 
-          {/* Status */}
-          <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-[#F5F2EC]">
-            <span
-              className="w-2.5 h-2.5 rounded-full shrink-0 animate-pulse"
-              style={{ background: st.dot }}
-            />
-            <span
-              className="text-sm font-semibold tracking-wide"
-              style={{
-                fontFamily: "'Cormorant Garamond',serif",
-                color: st.labelClr,
-              }}
-            >
-              {st.label}
-            </span>
-          </div>
+          {/* Status (Hidden for Multi-Purpose S-75) */}
+          {!isMultiPurpose && (
+            <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-[#F5F2EC]">
+              <span
+                className="w-2.5 h-2.5 rounded-full shrink-0 animate-pulse"
+                style={{ background: st.dot }}
+              />
+              <span
+                className="text-sm font-semibold tracking-wide"
+                style={{
+                  fontFamily: "'Cormorant Garamond',serif",
+                  color: st.labelClr,
+                }}
+              >
+                {st.label}
+              </span>
+            </div>
+          )}
 
           {/* Description */}
           <p
@@ -166,8 +175,26 @@ export default function UnitModal({ unit, onClose, onReserve }: Props) {
             {sp.description}
           </p>
 
-          {/* CTA */}
-          {unit.status === "available" ? (
+          {/* CTA / Multi-Purpose Info */}
+          {isMultiPurpose ? (
+            <div
+              className="w-full py-4 px-5 rounded-xl text-center"
+              style={{
+                background: "#F5F3FF",
+                border: "1px dashed #A78BFA",
+              }}
+            >
+              <p
+                className="text-[13px] text-slate-600 leading-relaxed font-medium"
+                style={{ fontFamily: "Lato,sans-serif" }}
+              >
+                This specialized multi-purpose area is available for private
+                events, corporate conferences, and exclusive community
+                gatherings. Please contact administration for booking inquiries
+                and availability.
+              </p>
+            </div>
+          ) : unit.status === "available" ? (
             <button
               onClick={() => onReserve(unit)}
               className="w-full py-3.5 rounded-xl font-bold text-base tracking-[0.12em] uppercase transition-all duration-150 hover:opacity-90 active:scale-[0.98] text-white"

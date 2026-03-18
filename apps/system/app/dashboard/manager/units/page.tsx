@@ -17,6 +17,7 @@ import ConfirmDeleteModal from "../../../../components/ConfirmDeleteModal";
 import Modal from "../../../../components/Modal";
 import UnitForm from "../../../../components/UnitForm";
 import UnitDetailsModal from "../../../../components/UnitDetailsModal";
+import { managerNavItems } from "../../../../lib/navigation";
 
 interface UnitRow {
   id: number;
@@ -56,13 +57,6 @@ const getActiveClientName = (clients?: any[]) => {
 };
 
 export default function UnitsPage() {
-  const managerNavItems = [
-    { label: "Dashboard", href: "/dashboard/manager" },
-    { label: "Brokers/Agent List", href: "/dashboard/manager/brokers" },
-    { label: "Statistics", href: "/dashboard/manager/statistics" },
-    { label: "Unit Management", href: "/dashboard/manager/units" },
-  ];
-
   const [units, setUnits] = useState<UnitRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

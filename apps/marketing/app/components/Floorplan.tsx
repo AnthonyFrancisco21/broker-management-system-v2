@@ -37,6 +37,11 @@ const THEME: Record<UnitType, { fill: string; stroke: string; text: string }> =
       stroke: "#B05E0A",
       text: "#4A2000",
     },
+    "S-75": {
+      fill: "rgba(167, 139, 250, 0.5)",
+      stroke: "#7C3AED",
+      text: "#4C1D95",
+    }, // New Multi-purpose Color
   };
 
 const STATUS_THEME: Record<UnitStatus, { fill: string; stroke: string }> = {
@@ -45,38 +50,8 @@ const STATUS_THEME: Record<UnitStatus, { fill: string; stroke: string }> = {
   sold: { fill: "rgba(254, 226, 226, 0.8)", stroke: "#DC2626" },
 };
 
-// ─── Perfect 1:1 Pixel Coordinate System (Based on 1216x2000 grid) ────────────
-const ROOMS = [
-  // WING — green S-36 rooms
-  {
-    key: "w36c",
-    rmNum: 10,
-    type: "S-36" as UnitType,
-    x: 260,
-    y: 205,
-    w: 100,
-    h: 317,
-  },
-  {
-    key: "w36a",
-    rmNum: 18,
-    type: "S-36" as UnitType,
-    x: 365,
-    y: 205,
-    w: 100,
-    h: 317,
-  },
-  {
-    key: "w36b",
-    rmNum: 17,
-    type: "S-36" as UnitType,
-    x: 465,
-    y: 205,
-    w: 105,
-    h: 317,
-  },
-
-  // WING — orange S-40
+// ─── Base Coordinates (Shared between all floors) ─────────────────────────────
+const BASE_ROOMS = [
   {
     key: "w40",
     rmNum: 16,
@@ -86,8 +61,6 @@ const ROOMS = [
     w: 210,
     h: 120,
   },
-
-  // RIGHT COL — RM15 S-24 (below S-40, above row-0)
   {
     key: "rm15",
     rmNum: 15,
@@ -97,8 +70,60 @@ const ROOMS = [
     w: 170,
     h: 102,
   },
-
-  // LEFT COL — S-28 rows 0-6
+  {
+    key: "rm14",
+    rmNum: 14,
+    type: "S-24" as UnitType,
+    x: 810,
+    y: 522,
+    w: 170,
+    h: 102,
+  },
+  {
+    key: "rm12",
+    rmNum: 12,
+    type: "S-24" as UnitType,
+    x: 810,
+    y: 624,
+    w: 170,
+    h: 105,
+  },
+  {
+    key: "rm10",
+    rmNum: 10,
+    type: "S-24" as UnitType,
+    x: 810,
+    y: 729,
+    w: 170,
+    h: 102,
+  },
+  {
+    key: "rm08",
+    rmNum: 8,
+    type: "S-24" as UnitType,
+    x: 810,
+    y: 831,
+    w: 170,
+    h: 104,
+  },
+  {
+    key: "rm06",
+    rmNum: 6,
+    type: "S-24" as UnitType,
+    x: 810,
+    y: 935,
+    w: 170,
+    h: 103,
+  },
+  {
+    key: "rm04",
+    rmNum: 4,
+    type: "S-28" as UnitType,
+    x: 810,
+    y: 1048,
+    w: 170,
+    h: 120,
+  },
   {
     key: "rm13",
     rmNum: 13,
@@ -162,66 +187,6 @@ const ROOMS = [
     w: 198,
     h: 88,
   },
-
-  // RIGHT COL — S-24 rows 0-4
-  {
-    key: "rm14",
-    rmNum: 14,
-    type: "S-24" as UnitType,
-    x: 810,
-    y: 522,
-    w: 170,
-    h: 102,
-  },
-  {
-    key: "rm12",
-    rmNum: 12,
-    type: "S-24" as UnitType,
-    x: 810,
-    y: 624,
-    w: 170,
-    h: 105,
-  },
-  {
-    key: "rm10",
-    rmNum: 10,
-    type: "S-24" as UnitType,
-    x: 810,
-    y: 729,
-    w: 170,
-    h: 102,
-  },
-  {
-    key: "rm08",
-    rmNum: 8,
-    type: "S-24" as UnitType,
-    x: 810,
-    y: 831,
-    w: 170,
-    h: 104,
-  },
-  {
-    key: "rm06",
-    rmNum: 6,
-    type: "S-24" as UnitType,
-    x: 810,
-    y: 935,
-    w: 170,
-    h: 103,
-  },
-
-  // RIGHT COL — RM04 S-28 (row 5, amber)
-  {
-    key: "rm04",
-    rmNum: 4,
-    type: "S-28" as UnitType,
-    x: 810,
-    y: 1048,
-    w: 170,
-    h: 120,
-  },
-
-  // BOTTOM — S-36c RM01 (spans left col + pullway)
   {
     key: "rm01",
     rmNum: 1,
@@ -233,20 +198,67 @@ const ROOMS = [
   },
 ];
 
+// ─── Typical Floor Wing (3 separate S-36 units) ───────────────────────────────
+const ROOMS_TYPICAL = [
+  ...BASE_ROOMS,
+  {
+    key: "w36_19",
+    rmNum: 19,
+    type: "S-36" as UnitType,
+    x: 260,
+    y: 250,
+    w: 100,
+    h: 270,
+  },
+  {
+    key: "w36_18",
+    rmNum: 18,
+    type: "S-36" as UnitType,
+    x: 365,
+    y: 240,
+    w: 100,
+    h: 250,
+  },
+  {
+    key: "w36_17",
+    rmNum: 17,
+    type: "S-36" as UnitType,
+    x: 465,
+    y: 240,
+    w: 105,
+    h: 250,
+  },
+];
+
+// ─── Upper Ground Floor Wing (1 massive S-75 unit) ────────────────────────────
+const ROOMS_UG = [
+  ...BASE_ROOMS,
+  // Single polygon encompassing the entire wing space
+  {
+    key: "w75_17",
+    rmNum: 17,
+    type: "S-75" as UnitType,
+    x: 260,
+    y: 240,
+    w: 310,
+    h: 280,
+  },
+];
+
 export default function FloorPlan({ floorData, onUnitClick }: FloorPlanProps) {
   const [hoveredRoom, setHoveredRoom] = useState<string | null>(null);
 
-  // Map roomNumber string -> Unit object for fast lookup
-  const byRmNum = new Map<string, Unit>();
-  for (const u of floorData.units) byRmNum.set(u.roomNumber.slice(-2), u);
+  // Switch the layout map based on the floor
+  const activeRooms = floorData.floor === 1 ? ROOMS_UG : ROOMS_TYPICAL;
 
-  function getUnit(rm: (typeof ROOMS)[0]): Unit | undefined {
+  // Map roomNumber suffix -> Unit object for fast, reliable lookup
+  const byRmNum = new Map<string, Unit>();
+  for (const u of floorData.units) {
+    byRmNum.set(u.roomNumber.slice(-2), u);
+  }
+
+  function getUnit(rm: { rmNum: number; type: UnitType }): Unit | undefined {
     const pad = String(rm.rmNum).padStart(2, "0");
-    if (rm.key === "w36c" || rm.key === "rm10") {
-      return floorData.units.find(
-        (u) => u.roomNumber.endsWith(pad) && u.type === rm.type,
-      );
-    }
     return byRmNum.get(pad);
   }
 
@@ -261,7 +273,7 @@ export default function FloorPlan({ floorData, onUnitClick }: FloorPlanProps) {
     <div className="w-full flex flex-col gap-5 fade-up">
       {/* ── Legend ── */}
       <div className="flex flex-wrap gap-x-6 gap-y-2 justify-center">
-        {(["S-24", "S-28", "S-36", "S-40"] as UnitType[]).map((t) => (
+        {(["S-24", "S-28", "S-36", "S-40", "S-75"] as UnitType[]).map((t) => (
           <div key={t} className="flex items-center gap-2">
             <div
               className="w-4 h-4 rounded-sm border-2 shrink-0"
@@ -311,12 +323,12 @@ export default function FloorPlan({ floorData, onUnitClick }: FloorPlanProps) {
 
         {/* Absolute SVG perfectly layered on top */}
         <svg
-          viewBox="0 0 1216 2000" // Matches the exact native pixel dimensions of the image
+          viewBox="0 0 1216 2000"
           className="absolute inset-0 w-full h-full z-10"
-          style={{ pointerEvents: "none" }} // Lets you click through to nothing if you miss a room
+          style={{ pointerEvents: "none" }}
         >
           {/* Interactive Unit Polygons */}
-          {ROOMS.map((rm) => {
+          {activeRooms.map((rm) => {
             const unit = getUnit(rm);
             const status: UnitStatus = unit?.status ?? "available";
             const isHovered = hoveredRoom === rm.key;
@@ -341,7 +353,7 @@ export default function FloorPlan({ floorData, onUnitClick }: FloorPlanProps) {
                 style={{
                   cursor: isAvailable ? "pointer" : "not-allowed",
                   transition: "all 0.2s ease",
-                  pointerEvents: "auto", // Re-enable pointer events just for the rooms
+                  pointerEvents: "auto",
                 }}
               >
                 {/* Highlight Outline when hovered */}
@@ -395,7 +407,7 @@ export default function FloorPlan({ floorData, onUnitClick }: FloorPlanProps) {
                   </>
                 )}
 
-                {/* Floating Room Label (Visible on hover or if unavailable) */}
+                {/* Floating Room Label */}
                 <g
                   style={{
                     opacity: isHovered || status !== "available" ? 1 : 0,
@@ -440,7 +452,9 @@ export default function FloorPlan({ floorData, onUnitClick }: FloorPlanProps) {
                       pointerEvents: "none",
                     }}
                   >
-                    RM {String(rm.rmNum).padStart(2, "0")}
+                    {/* Dynamically outputs the full room number (e.g., "RM 216" or "RM 1016") */}
+                    RM{" "}
+                    {unit ? unit.roomNumber : String(rm.rmNum).padStart(2, "0")}
                   </text>
                 </g>
               </g>

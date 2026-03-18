@@ -1,20 +1,103 @@
 "use client";
 
-import { useState } from "react";
-import { FLOORS, FloorData, Unit } from "../lib/floorData";
+import { useState, useEffect } from "react";
+import {
+  FloorData,
+  Unit,
+  FLOOR_LABELS,
+  UnitType,
+  UnitStatus,
+} from "../lib/floorData";
 import FloorSelector from "../components/Floorselector";
 import FloorPlan from "../components/Floorplan";
 import UnitModal from "../components/Unitmodal";
-import { Building2, CheckCircle2 } from "lucide-react";
+import { Building2, CheckCircle2, Loader2 } from "lucide-react";
 
 export default function ReservationPage() {
+  const [floorsData, setFloorsData] = useState<FloorData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const [selectedFloor, setSelectedFloor] = useState<number | null>(null);
   const [activeUnit, setActiveUnit] = useState<Unit | null>(null);
   const [confirmed, setConfirmed] = useState<Unit | null>(null);
 
+  // Fetch logic identical to your BrokersPage
+  const loadUnits = async () => {
+    try {
+      // If you need authentication for the marketing site, keep token logic.
+      // If the reservation page is public, you might not need the Bearer token here.
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/units/public`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        },
+      );
+
+      if (!res.ok)
+        throw new Error(`Something went wrong :( Please try again later.`);
+
+      const dbUnits = await res.json();
+      const floorsMap = new Map<number, FloorData>();
+
+      // Group flat database rows into FloorData groups
+      dbUnits.forEach((dbUnit: any) => {
+        if (dbUnit.floor === null) return;
+
+        if (!floorsMap.has(dbUnit.floor)) {
+          floorsMap.set(dbUnit.floor, {
+            floor: dbUnit.floor,
+            label: FLOOR_LABELS[dbUnit.floor] ?? `Floor ${dbUnit.floor}`,
+            totalSqm: 0,
+            units: [],
+          });
+        }
+
+        const floorGroup = floorsMap.get(dbUnit.floor)!;
+        const sqmValue = parseInt(dbUnit.size?.replace(" sqm", "") || "0", 10);
+
+        // Map DB string to UI Theme logic
+        let visualStatus: UnitStatus = "available";
+        if (["reserved", "underNego", "viewing"].includes(dbUnit.unitStatus)) {
+          visualStatus = "reserved";
+        } else if (dbUnit.unitStatus === "occupied") {
+          visualStatus = "sold";
+        }
+
+        floorGroup.units.push({
+          id: dbUnit.id.toString(),
+          roomNumber: dbUnit.roomNo || "",
+          type: (dbUnit.unitType as UnitType) || "S-24",
+          sqm: sqmValue,
+          floor: dbUnit.floor,
+          status: visualStatus,
+          price: dbUnit.price ? Number(dbUnit.price) : null,
+        });
+
+        floorGroup.totalSqm += sqmValue;
+      });
+
+      // Convert Map to Array and sort by floor number
+      const formattedData = Array.from(floorsMap.values()).sort(
+        (a, b) => a.floor - b.floor,
+      );
+      setFloorsData(formattedData);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadUnits();
+  }, []);
+
   const floorData: FloorData | null =
     selectedFloor != null
-      ? (FLOORS.find((f) => f.floor === selectedFloor) ?? null)
+      ? (floorsData.find((f) => f.floor === selectedFloor) ?? null)
       : null;
 
   const handleSelect = (floor: number) => {
@@ -25,7 +108,38 @@ export default function ReservationPage() {
   const handleReserve = (unit: Unit) => {
     setActiveUnit(null);
     setConfirmed(unit);
+    // TODO: You will trigger a POST/PUT request here to update the unit status in your backend
   };
+
+  if (loading) {
+    return (
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{ background: "#FAF9F7" }}
+      >
+        <div
+          className="flex flex-col items-center gap-4"
+          style={{ color: "#B8975A" }}
+        >
+          <Loader2 className="animate-spin" size={48} />
+          <p className="tracking-[0.2em] uppercase text-sm font-serif">
+            Loading Live Inventory...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{ background: "#FAF9F7" }}
+      >
+        <p className="text-red-500 font-medium">Error: {error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen" style={{ background: "#FAF9F7" }}>
@@ -115,18 +229,21 @@ export default function ReservationPage() {
           Select a floor to explore available studio suites and begin your
           reservation.
         </p>
-        {/* Stats strip */}
+
+        {/* Stats strip connected to Live Data */}
         <div
           className="flex flex-wrap justify-center border-y py-5 max-w-3xl mx-auto"
           style={{ borderColor: "#E8E4DA" }}
         >
           {[
-            { label: "Total Floors", value: "10" },
+            { label: "Total Floors", value: floorsData.length.toString() },
             {
               label: "Total Units",
-              value: FLOORS.reduce((a, f) => a + f.units.length, 0).toString(),
+              value: floorsData
+                .reduce((a, f) => a + f.units.length, 0)
+                .toString(),
             },
-            { label: "Unit Types", value: "4" },
+            { label: "Unit Types", value: "5" },
             { label: "Min. Area", value: "24 m²" },
           ].map(({ label, value }, i, arr) => (
             <div
@@ -162,7 +279,7 @@ export default function ReservationPage() {
             Select Floor
           </p>
           <FloorSelector
-            floors={FLOORS}
+            floors={floorsData}
             selectedFloor={selectedFloor}
             onSelect={handleSelect}
           />
@@ -211,8 +328,7 @@ export default function ReservationPage() {
             </div>
           ) : (
             <div
-              className="flex flex-col items-center justify-center min-h-[500px] gap-5
-              border border-dashed rounded-xl text-center p-10"
+              className="flex flex-col items-center justify-center min-h-[500px] gap-5 border border-dashed rounded-xl text-center p-10"
               style={{ borderColor: "#D8D4CA", background: "#FFFFFF" }}
             >
               <div

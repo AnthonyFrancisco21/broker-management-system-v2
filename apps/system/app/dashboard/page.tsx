@@ -22,9 +22,6 @@ export default function DashboardRoot() {
       case "MANAGER":
         router.push("/dashboard/manager");
         break;
-      case "AGENT":
-        router.push("/dashboard/broker");
-        break;
       default:
         // 3. Unknown role? Stay here or go to a "Contact Support" page.
         console.warn("User has no valid role");

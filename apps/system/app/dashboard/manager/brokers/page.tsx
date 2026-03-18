@@ -8,6 +8,7 @@ import AddAgentForm from "../../../../components/AddAgentForm";
 import BrokerDetailsView from "../../../../components/BrokerDetailsView";
 import EditAgentForm from "../../../../components/EditAgentForm";
 import ConfirmDeleteModal from "../../../../components/ConfirmDeleteModal";
+import { managerNavItems } from "../../../../lib/navigation";
 
 export interface BrokerRow {
   id: number;
@@ -23,13 +24,6 @@ export interface BrokerRow {
 }
 
 export default function BrokersPage() {
-  const managerNavItems = [
-    { label: "Dashboard", href: "/dashboard/manager" },
-    { label: "Brokers/Agent List", href: "/dashboard/manager/brokers" },
-    { label: "Statistics", href: "/dashboard/manager/statistics" },
-    { label: "Unit Management", href: "/dashboard/manager/units" },
-  ];
-
   const [brokers, setBrokers] = useState<BrokerRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

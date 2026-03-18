@@ -39,9 +39,12 @@ const upload = multer({ storage });
 router.get(
   "/",
   authenticate,
-  authorize(["ADMIN", "MANAGER", "AGENT", "CLIENT"]),
+  authorize(["ADMIN", "MANAGER"]),
   UnitController.getUnits,
 );
+
+// get all unit public
+router.get("/public", UnitController.getUnits);
 
 // POST create a unit (allows up to 10 images at once)
 router.post(
