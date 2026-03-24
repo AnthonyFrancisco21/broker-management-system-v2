@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ClientRow } from "../app/dashboard/broker/clients/page";
+import { ClientRow } from "../app/dashboard/manager/clients/page";
 
 interface Unit {
   id: number;

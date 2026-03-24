@@ -1,6 +1,6 @@
 "use client";
 
-import { ClientRow } from "../app/dashboard/broker/clients/page";
+import { ClientRow } from "../app/dashboard/manager/clients/page";
 import { User, Mail, Calendar, Home, CheckCircle } from "lucide-react";
 
 interface ClientDetailsViewProps {
