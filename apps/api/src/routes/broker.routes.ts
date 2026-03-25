@@ -1,5 +1,3 @@
-// apps/api/src/routes/broker.routes.ts
-
 import { Router } from "express";
 import multer from "multer";
 import * as BrokerController from "../controllers/broker.controller";
@@ -13,7 +11,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 router.get(
   "/",
   authenticate,
-  authorize(["ADMIN", "MANAGER"]),
+  authorize(["ADMIN", "MANAGER"]), // Adjust roles if necessary based on your setup
   BrokerController.getBrokers,
 );
 
@@ -23,6 +21,25 @@ router.post(
   authenticate,
   upload.single("picture"),
   BrokerController.createBroker,
+);
+
+// NEW: Update broker route (Matches the PUT request from EditAgentForm)
+// Uses "profilePicture" because that's what the frontend submitData appends
+router.put(
+  "/:id",
+  authenticate,
+  upload.single("profilePicture"),
+  BrokerController.updateBroker,
+);
+
+// Add this near your other routes in broker.routes.ts
+
+// NEW: Delete broker route
+router.delete(
+  "/:id",
+  authenticate,
+  authorize(["ADMIN", "MANAGER"]), // Optional: secure this so only admins can delete
+  BrokerController.deleteBroker,
 );
 
 export default router;

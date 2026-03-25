@@ -11,7 +11,6 @@ export const getBrokers = async (req: Request, res: Response) => {
   }
 };
 
-// Explicitly tell TypeScript that 'file' might exist on this specific Request
 export const createBroker = async (
   req: Request & { file?: Express.Multer.File },
   res: Response,
@@ -26,7 +25,6 @@ export const createBroker = async (
         .json({ error: "Missing required fields: firstName, lastName, email" });
     }
 
-    // Parse the stringified JSON arrays sent by FormData
     const brokerData = {
       ...rawData,
       characterReferences: rawData.characterReferences
@@ -45,6 +43,60 @@ export const createBroker = async (
     res.status(400).json({
       error: error.message || "Failed to create broker",
       details: error.code,
+    });
+  }
+};
+
+// NEW: Update Broker Controller
+export const updateBroker = async (
+  req: Request & { file?: Express.Multer.File },
+  res: Response,
+) => {
+  try {
+    // Parse the ID from the URL parameter (e.g., /api/brokers/2)
+    const id = Number(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: "Invalid broker ID provided" });
+    }
+
+    const rawData = req.body;
+    const pictureFile = req.file;
+
+    const updatedBroker = await BrokerService.updateBroker(
+      id,
+      rawData,
+      pictureFile,
+    );
+    res
+      .status(200)
+      .json({ message: "Broker updated successfully", updatedBroker });
+  } catch (error: any) {
+    console.error("Error updating broker:", error);
+    res.status(400).json({
+      error: error.message || "Failed to update broker",
+    });
+  }
+};
+
+// Add this at the end of the file
+
+export const deleteBroker = async (req: Request, res: Response) => {
+  try {
+    // Parse the ID from the URL parameter (e.g., /api/brokers/2)
+    const id = Number(req.params.id);
+
+    if (isNaN(id)) {
+      return res.status(400).json({ error: "Invalid broker ID provided" });
+    }
+
+    await BrokerService.deleteBroker(id);
+    res
+      .status(200)
+      .json({ message: "Broker and associated files deleted successfully" });
+  } catch (error: any) {
+    console.error("Error deleting broker:", error);
+    res.status(400).json({
+      error: error.message || "Failed to delete broker",
     });
   }
 };

@@ -1,92 +1,36 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// useDashboardData.ts
-// Single hook responsible for fetching, normalising, and refreshing all
-// dashboard data. Keeps the page component free of data-layer concerns.
+// lib/useDashboardData.ts
+//
+// Two completely independent hooks:
+//   useClientSummary()  — fetches /clients, clients load first (primary concern)
+//   useAgentSummary()   — fetches /brokers, loads independently with own state
+//
+// Keeping them separate means the page can render client data the moment it
+// arrives without waiting for the agent fetch, and vice versa.
 // ─────────────────────────────────────────────────────────────────────────────
 
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import {
+  WARM_PIPELINE_STATUSES,
+  STALE_PROSPECT_DAYS,
+  STALE_VIEWING_DAYS,
+} from "./dashboard.config";
 import type {
-  DashboardState,
-  DashboardData,
-  Client,
-  Broker,
-  Unit,
-  ApiBroker,
   ApiClient,
-  ApiUnit,
+  ApiBroker,
+  Client,
+  Agent,
+  ClientSummaryState,
+  AgentSummaryState,
+  AttentionItem,
+  ClientStatus,
 } from "./dashboard.types";
 
-// ─── Normalisation helpers ────────────────────────────────────────────────────
-// The API may use either camelCase or the raw Prisma-mapped snake_case column
-// names, depending on the serialiser. We handle both defensively.
+// ─── Auth helper ──────────────────────────────────────────────────────────────
 
-function normaliseBroker(raw: ApiBroker): Broker {
-  return {
-    id: raw.id ?? raw.userID ?? 0,
-    firstName: raw.firstName ?? "",
-    lastName: raw.lastName ?? "",
-    email: raw.email ?? "",
-  };
-}
-
-function normaliseUnit(raw: ApiUnit): Unit {
-  const price = raw.price ?? null;
-  const installment =
-    raw.installmentPerMonth ?? raw.installment_per_month ?? null;
-
-  return {
-    id: raw.id ?? raw.unit_id ?? 0,
-    roomNo: raw.roomNo ?? raw.room_no ?? "—",
-    unitType: raw.unitType ?? raw.unit_type ?? "Unit",
-    floor: raw.floor ?? null,
-    size: raw.size ?? null,
-    price: price !== null ? Number(price) : null,
-    installmentPerMonth: installment !== null ? Number(installment) : null,
-    unitStatus: raw.unitStatus ?? raw.unit_status ?? "available",
-  };
-}
-
-function brokerLabel(broker?: ApiClient["broker"]): string | null {
-  if (!broker) return null;
-  const parts = [broker.firstName, broker.lastName].filter(Boolean);
-  return parts.length ? parts.join(" ") : null;
-}
-
-function unitLabel(unit?: ApiClient["unit"]): string | null {
-  if (!unit) return null;
-  const type = unit.unitType ?? unit.unit_type ?? "Unit";
-  const room = unit.roomNo ?? unit.room_no ?? `#${unit.id ?? unit.unit_id}`;
-  return `${type} · ${room}`;
-}
-
-function unitPrice(unit?: ApiClient["unit"]): number | null {
-  if (!unit) return null;
-  return unit.price !== undefined && unit.price !== null
-    ? Number(unit.price)
-    : null;
-}
-
-function normaliseClient(raw: ApiClient): Client {
-  return {
-    id: raw.id ?? raw.clientID ?? 0,
-    firstName: raw.firstName ?? "",
-    lastName: raw.lastName ?? "",
-    email: raw.email ?? "",
-    clientStatus: raw.clientStatus ?? raw.client_status ?? "prospect",
-    createdAt: new Date(raw.createdAt ?? raw.created_at ?? Date.now()),
-    brokerId: raw.brokerId ?? raw.brokerID ?? null,
-    brokerName: brokerLabel(raw.broker),
-    unitId: raw.unitId ?? raw.unit_id ?? null,
-    unitLabel: unitLabel(raw.unit),
-    unitPrice: unitPrice(raw.unit),
-  };
-}
-
-// ─── Fetch helpers ────────────────────────────────────────────────────────────
-
-function getAuthHeaders(): Record<string, string> | null {
+function getHeaders(): Record<string, string> | null {
   if (typeof window === "undefined") return null;
   const token = localStorage.getItem("token");
   if (!token) return null;
@@ -101,22 +45,52 @@ async function fetchJson<T>(
   headers: Record<string, string>,
 ): Promise<T> {
   const res = await fetch(url, { headers });
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText} — ${url}`);
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
   return res.json() as Promise<T>;
 }
 
-// ─── Hook ─────────────────────────────────────────────────────────────────────
+// ─── Normalisation ────────────────────────────────────────────────────────────
 
-const EMPTY: DashboardData = { clients: [], brokers: [], units: [] };
+function normaliseClient(raw: ApiClient): Client {
+  return {
+    id: raw.id ?? raw.clientID ?? 0,
+    firstName: raw.firstName ?? "",
+    lastName: raw.lastName ?? "",
+    email: raw.email ?? "",
+    // Handle both camelCase and snake_case from Prisma
+    clientStatus: (raw.clientStatus ??
+      raw.client_status ??
+      "prospect") as ClientStatus,
+    createdAt: new Date(raw.createdAt ?? raw.created_at ?? Date.now()),
+  };
+}
 
-export function useDashboardData(): DashboardState {
-  const [data, setData] = useState<DashboardData>(EMPTY);
+function normaliseAgent(raw: ApiBroker): Agent {
+  return {
+    id: raw.id ?? raw.userID ?? 0,
+    firstName: raw.firstName ?? "",
+    lastName: raw.lastName ?? "",
+    email: raw.email ?? "",
+    position: raw.position ?? "",
+    primaryContact: raw.primaryContact ?? "",
+    hasLicense:
+      typeof raw.brokersLicense === "string" &&
+      raw.brokersLicense.trim().length > 0,
+  };
+}
+
+// ─── useClientSummary ─────────────────────────────────────────────────────────
+
+const EMPTY_CLIENTS: { clients: Client[] } = { clients: [] };
+
+export function useClientSummary(): ClientSummaryState {
+  const [data, setData] = useState<{ clients: Client[] }>(EMPTY_CLIENTS);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   const load = useCallback(async (silent: boolean) => {
-    const headers = getAuthHeaders();
+    const headers = getHeaders();
     if (!headers) {
       setIsLoading(false);
       return;
@@ -126,25 +100,16 @@ export function useDashboardData(): DashboardState {
 
     try {
       const base = process.env.NEXT_PUBLIC_API_URL ?? "";
-
-      const [rawBrokers, rawClients, rawUnits] = await Promise.all([
-        fetchJson<ApiBroker[]>(`${base}/brokers`, headers).catch(() => []),
-        fetchJson<ApiClient[]>(`${base}/clients`, headers).catch(() => []),
-        fetchJson<ApiUnit[]>(`${base}/units`, headers).catch(() => []),
-      ]);
-
+      const raw = await fetchJson<ApiClient[]>(
+        `${base}/clients`,
+        headers,
+      ).catch(() => []);
       setData({
-        brokers: (Array.isArray(rawBrokers) ? rawBrokers : [])
-          .filter((b) => !b.isDeleted)
-          .map(normaliseBroker),
-        clients: (Array.isArray(rawClients) ? rawClients : []).map(
-          normaliseClient,
-        ),
-        units: (Array.isArray(rawUnits) ? rawUnits : []).map(normaliseUnit),
+        clients: (Array.isArray(raw) ? raw : []).map(normaliseClient),
       });
       setLastUpdated(new Date());
     } catch (err) {
-      console.error("[useDashboardData]", err);
+      console.error("[useClientSummary]", err);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -155,46 +120,99 @@ export function useDashboardData(): DashboardState {
     load(false);
   }, [load]);
 
-  const refresh = useCallback(() => load(true), [load]);
-
-  return { data, isLoading, isRefreshing, lastUpdated, refresh };
+  return {
+    data,
+    isLoading,
+    isRefreshing,
+    lastUpdated,
+    refresh: useCallback(() => load(true), [load]),
+  };
 }
 
-// ─── Derived selectors (pure functions — easy to unit-test) ──────────────────
+// ─── useAgentSummary ──────────────────────────────────────────────────────────
 
-import {
-  ACTIVE_DEAL_STATUSES,
-  WARM_PIPELINE_STATUSES,
-  STALE_PROSPECT_DAYS,
-  STALE_VIEWING_DAYS,
-} from "./dashboard.config";
-import type { AttentionItem } from "./dashboard.types";
+const EMPTY_AGENTS: { agents: Agent[] } = { agents: [] };
+
+export function useAgentSummary(): AgentSummaryState {
+  const [data, setData] = useState<{ agents: Agent[] }>(EMPTY_AGENTS);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    const headers = getHeaders();
+    if (!headers) {
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const base = process.env.NEXT_PUBLIC_API_URL ?? "";
+      const raw = await fetchJson<ApiBroker[]>(
+        `${base}/brokers`,
+        headers,
+      ).catch(() => []);
+      setData({
+        agents: (Array.isArray(raw) ? raw : [])
+          .filter((b) => !b.isDeleted)
+          .map(normaliseAgent),
+      });
+    } catch (err) {
+      console.error("[useAgentSummary]", err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  return {
+    data,
+    isLoading,
+    refresh: load,
+  };
+}
+
+// ─── Pure selectors ───────────────────────────────────────────────────────────
 
 function daysSince(date: Date): number {
   return Math.floor((Date.now() - date.getTime()) / 86_400_000);
 }
 
-export function deriveAttentionItems(
-  clients: Client[],
-  units: Unit[],
-): AttentionItem[] {
+export function deriveClientKpis(clients: Client[]) {
+  const now = new Date();
+  const total = clients.length;
+  const totalClosed = clients.filter(
+    (c) => c.clientStatus === "success",
+  ).length;
+
+  return {
+    totalClients: total,
+    warmPipeline: clients.filter((c) =>
+      WARM_PIPELINE_STATUSES.includes(c.clientStatus),
+    ).length,
+    closedThisMonth: clients.filter((c) => {
+      if (c.clientStatus !== "success") return false;
+      return (
+        c.createdAt.getMonth() === now.getMonth() &&
+        c.createdAt.getFullYear() === now.getFullYear()
+      );
+    }).length,
+    totalRejected: clients.filter((c) => c.clientStatus === "rejected").length,
+    conversionRate: total > 0 ? Math.round((totalClosed / total) * 100) : 0,
+  };
+}
+
+export function deriveAgentKpis(agents: Agent[]) {
+  return {
+    totalAgents: agents.length,
+    licensedAgents: agents.filter((a) => a.hasLicense).length,
+  };
+}
+
+export function deriveAttentionItems(clients: Client[]): AttentionItem[] {
   const items: AttentionItem[] = [];
 
-  // Active deals without a linked unit
-  const unlinked = clients.filter(
-    (c) => ACTIVE_DEAL_STATUSES.includes(c.clientStatus) && !c.unitId,
-  ).length;
-  if (unlinked > 0) {
-    items.push({
-      id: "unlinked-units",
-      severity: "urgent",
-      message: `${unlinked} active deal${unlinked > 1 ? "s" : ""} have no unit linked yet`,
-      count: unlinked,
-      href: "/dashboard/manager/clients",
-    });
-  }
-
-  // Stale prospects
   const staleProspects = clients.filter(
     (c) =>
       c.clientStatus === "prospect" &&
@@ -204,13 +222,11 @@ export function deriveAttentionItems(
     items.push({
       id: "stale-prospects",
       severity: "warning",
-      message: `${staleProspects} prospect${staleProspects > 1 ? "s" : ""} untouched for over ${STALE_PROSPECT_DAYS} days`,
-      count: staleProspects,
+      message: `${staleProspects} prospect${staleProspects > 1 ? "s" : ""} with no update in ${STALE_PROSPECT_DAYS}+ days`,
       href: "/dashboard/manager/clients",
     });
   }
 
-  // Stale viewings
   const staleViewing = clients.filter(
     (c) =>
       c.clientStatus === "viewing" &&
@@ -220,60 +236,10 @@ export function deriveAttentionItems(
     items.push({
       id: "stale-viewing",
       severity: "warning",
-      message: `${staleViewing} viewing${staleViewing > 1 ? "s" : ""} with no status update in ${STALE_VIEWING_DAYS}+ days`,
-      count: staleViewing,
+      message: `${staleViewing} viewing${staleViewing > 1 ? "s" : ""} stuck for ${STALE_VIEWING_DAYS}+ days`,
       href: "/dashboard/manager/clients",
     });
   }
 
-  // Available units (opportunity, not a problem)
-  const available = units.filter((u) => u.unitStatus === "available").length;
-  if (available > 0) {
-    items.push({
-      id: "available-units",
-      severity: "info",
-      message: `${available} unit${available > 1 ? "s" : ""} available — ready to assign to prospects`,
-      count: available,
-      href: "/dashboard/manager/units",
-    });
-  }
-
   return items;
-}
-
-export function deriveKpis(clients: Client[], units: Unit[]) {
-  const now = new Date();
-
-  const totalClients = clients.length;
-
-  const warmPipeline = clients.filter((c) =>
-    WARM_PIPELINE_STATUSES.includes(c.clientStatus),
-  ).length;
-
-  const availableUnits = units.filter(
-    (u) => u.unitStatus === "available",
-  ).length;
-
-  const closedThisMonth = clients.filter((c) => {
-    if (c.clientStatus !== "success") return false;
-    const d = c.createdAt;
-    return (
-      d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
-    );
-  }).length;
-
-  const totalClosed = clients.filter(
-    (c) => c.clientStatus === "success",
-  ).length;
-
-  const conversionRate =
-    totalClients > 0 ? Math.round((totalClosed / totalClients) * 100) : 0;
-
-  return {
-    totalClients,
-    warmPipeline,
-    availableUnits,
-    closedThisMonth,
-    conversionRate,
-  };
 }

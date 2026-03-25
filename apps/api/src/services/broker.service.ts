@@ -93,7 +93,6 @@ export const createBroker = async (
   // 3. Prisma Database Transaction (Inserts Broker + All Related Tables)
   return await prisma.broker.create({
     data: {
-      // Step 1 & 2: Main Broker Information
       firstName: data.firstName,
       lastName: data.lastName,
       middleName: data.middleName || null,
@@ -123,7 +122,7 @@ export const createBroker = async (
         },
       }),
 
-      // Step 3: Character References (FIXED!)
+      // Character References
       ...(Array.isArray(data.characterReferences) &&
         data.characterReferences.length > 0 && {
           characterReferences: {
@@ -136,7 +135,7 @@ export const createBroker = async (
           },
         }),
 
-      // Step 4: Education Relation (Added the Years)
+      // Education Relation
       ...((data.highSchool || data.college) && {
         educBackgrounds: {
           create: {
@@ -148,7 +147,7 @@ export const createBroker = async (
         },
       }),
 
-      // Step 4 (Cont): Seminars Relation
+      // Seminars Relation
       ...(Array.isArray(data.seminars) &&
         data.seminars.length > 0 && {
           seminars: {
@@ -160,11 +159,10 @@ export const createBroker = async (
           },
         }),
 
-      // Step 5: Sales Experience Relation (FIXED: mapped to salesExperiences)
+      // Sales Experience Relation
       ...(Array.isArray(data.yearsExperience) &&
         data.yearsExperience.length > 0 && {
           salesExperiences: {
-            // <-- This was previously yearsExperience, causing the crash
             create: data.yearsExperience.map((exp: any) => ({
               company: exp.company || null,
               position: exp.position || null,
@@ -173,5 +171,92 @@ export const createBroker = async (
           },
         }),
     },
+  });
+};
+
+// NEW: Update Broker Service
+export const updateBroker = async (
+  id: number,
+  data: Partial<CreateBrokerData>,
+  pictureFile?: any,
+) => {
+  let picturePath: string | null = null;
+
+  if (pictureFile) {
+    const ext = path.extname(pictureFile.originalname);
+    const safeName = (data.firstName || "broker")
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "");
+    const newFileName = `${safeName}-${Date.now()}-profilepic${ext}`;
+
+    const uploadDir = path.join(__dirname, "../../uploads");
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+
+    const fullPath = path.join(uploadDir, newFileName);
+    fs.writeFileSync(fullPath, pictureFile.buffer);
+    picturePath = `uploads/${newFileName}`;
+  }
+
+  return await prisma.broker.update({
+    where: { id },
+    data: {
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: data.email,
+      primaryContact: data.primaryContact,
+      brokersLicense: data.brokersLicense,
+      employerName: data.employerName,
+
+      // If a new picture was uploaded, delete old references and add the new one
+      ...(picturePath && {
+        brokerPictures: {
+          deleteMany: {}, // Clears old pictures so they don't stack up
+          create: {
+            imagePath: picturePath,
+          },
+        },
+      }),
+    },
+    include: {
+      brokerPictures: true, // Return the updated picture so the frontend can use it
+    },
+  });
+};
+
+// Add this at the end of the file
+export const deleteBroker = async (id: number) => {
+  // 1. Find the broker first to get their picture paths
+  const broker = await prisma.broker.findUnique({
+    where: { id },
+    include: { brokerPictures: true },
+  });
+
+  if (!broker) {
+    throw new Error("Broker not found");
+  }
+
+  // 2. Delete the physical image files from the server
+  if (broker.brokerPictures && broker.brokerPictures.length > 0) {
+    for (const pic of broker.brokerPictures) {
+      // FIX: Add a check to ensure imagePath is not null before deleting
+      if (pic.imagePath) {
+        // pic.imagePath is usually saved as "uploads/filename.ext"
+        const fullPath = path.join(__dirname, "../../", pic.imagePath);
+
+        // Check if the file actually exists before trying to delete it
+        if (fs.existsSync(fullPath)) {
+          fs.unlinkSync(fullPath); // Deletes the file
+        }
+      }
+    }
+  }
+
+  // 3. Delete the broker from the database
+  // Note: This assumes your Prisma schema has `onDelete: Cascade` set for related tables
+  // (like characterReferences, educBackgrounds, etc.) so they delete automatically.
+  return await prisma.broker.delete({
+    where: { id },
   });
 };
