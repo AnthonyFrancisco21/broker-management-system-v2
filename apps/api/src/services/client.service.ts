@@ -1,26 +1,57 @@
 import { prisma } from "@repo/database";
-import { ClientStatus, UnitStatus } from "@prisma/client";
 
-// FIX: Using TypeScript casting ("string" as EnumType) bypasses the caching error
-const determineUnitStatus = (clientStatus: string): UnitStatus => {
+// ─── Local type aliases ───────────────────────────────────────────────────────
+// Defined here to guarantee type safety without relying on generated enums
+
+export type ClientStatusValue =
+  | "prospect"
+  | "onHold"
+  | "paymentVerification"
+  | "reserved"
+  | "underNego"
+  | "rejected"
+  | "success";
+
+export type UnitStatusValue =
+  | "available"
+  | "onHold"
+  | "reserved"
+  | "underNego"
+  | "occupied";
+
+// ─── Unit status sync ─────────────────────────────────────────────────────────
+
+const determineUnitStatus = (
+  clientStatus: ClientStatusValue,
+): UnitStatusValue => {
   switch (clientStatus) {
     case "success":
-      return "occupied" as UnitStatus;
-    case "viewing":
-      return "viewing" as UnitStatus;
+      return "occupied";
+    case "onHold":
+    case "paymentVerification":
+      return "onHold";
     case "reserved":
-      return "reserved" as UnitStatus;
+      return "reserved";
     case "underNego":
-      return "underNego" as UnitStatus;
+      return "underNego";
     case "prospect":
     case "rejected":
     default:
-      return "available" as UnitStatus;
+      return "available";
   }
 };
 
-export const getAllClients = async (brokerId: number, role: string) => {
-  const whereClause = role === "AGENT" ? { brokerId } : {};
+const BLOCKED_UNIT_STATUSES: UnitStatusValue[] = [
+  "reserved",
+  "underNego",
+  "occupied",
+];
+
+// ─── Get All Clients ──────────────────────────────────────────────────────────
+
+export const getAllClients = async (accountId: number, role: string) => {
+  // Let standard TypeScript infer the where clause object
+  const whereClause = role === "ADMIN" ? {} : { accountId };
 
   return await prisma.client.findMany({
     where: whereClause,
@@ -33,37 +64,47 @@ export const getAllClients = async (brokerId: number, role: string) => {
   });
 };
 
+// ─── Create Client ────────────────────────────────────────────────────────────
+
 export const createClient = async (
   firstName: string,
   lastName: string,
   email: string,
-  clientStatus: ClientStatus,
+  clientStatus: ClientStatusValue,
   unitId: number | null,
-  brokerId: number,
+  accountId: number,
 ) => {
   return await prisma.$transaction(async (tx) => {
-    // BACKEND SAFEGUARD: Verify the unit is actually available before assigning it
     if (unitId) {
       const targetUnit = await tx.unit.findUnique({ where: { id: unitId } });
       if (!targetUnit) throw new Error("Selected unit does not exist.");
-      if (targetUnit.unitStatus !== ("available" as UnitStatus)) {
+
+      if (
+        BLOCKED_UNIT_STATUSES.includes(targetUnit.unitStatus as UnitStatusValue)
+      ) {
         throw new Error(
           `Cannot assign this unit. It is currently ${targetUnit.unitStatus}.`,
         );
       }
     }
 
-    // 1. Create the Client
     const newClient = await tx.client.create({
-      data: { firstName, lastName, email, clientStatus, unitId, brokerId },
+      data: {
+        firstName,
+        lastName,
+        email,
+        clientStatus: clientStatus as any, // Safely bypass Prisma enum lock
+        unitId,
+        accountId,
+      },
     });
 
-    // 2. Automatically sync the Unit status
     if (unitId) {
-      const newUnitStatus = determineUnitStatus(clientStatus as string);
       await tx.unit.update({
         where: { id: unitId },
-        data: { unitStatus: newUnitStatus },
+        data: {
+          unitStatus: determineUnitStatus(clientStatus) as any,
+        },
       });
     }
 
@@ -71,54 +112,61 @@ export const createClient = async (
   });
 };
 
+// ─── Update Client ────────────────────────────────────────────────────────────
+
 export const updateClient = async (
   id: number,
   firstName: string,
   lastName: string,
   email: string,
-  clientStatus: ClientStatus,
+  clientStatus: ClientStatusValue,
   unitId: number | null,
 ) => {
   return await prisma.$transaction(async (tx) => {
-    const existingClient = await tx.client.findUnique({
-      where: { id },
-    });
-
+    const existingClient = await tx.client.findUnique({ where: { id } });
     if (!existingClient) throw new Error("Client not found");
 
     const oldUnitId = existingClient.unitId;
-    const newUnitStatus = determineUnitStatus(clientStatus as string);
 
-    // BACKEND SAFEGUARD: If they selected a NEW unit, check if it's available
     if (unitId && unitId !== oldUnitId) {
       const targetUnit = await tx.unit.findUnique({ where: { id: unitId } });
       if (!targetUnit) throw new Error("Selected unit does not exist.");
-      if (targetUnit.unitStatus !== ("available" as UnitStatus)) {
+
+      if (
+        BLOCKED_UNIT_STATUSES.includes(targetUnit.unitStatus as UnitStatusValue)
+      ) {
         throw new Error(
-          `Cannot assign this new unit. It is currently ${targetUnit.unitStatus}.`,
+          `Cannot assign this unit. It is currently ${targetUnit.unitStatus}.`,
         );
       }
     }
 
-    // 1. Update the client
     const updatedClient = await tx.client.update({
       where: { id },
-      data: { firstName, lastName, email, clientStatus, unitId },
+      data: {
+        firstName,
+        lastName,
+        email,
+        clientStatus: clientStatus as any,
+        unitId,
+      },
     });
 
-    // 2. If the broker changed the unit entirely or removed it, free up the old unit
     if (oldUnitId && oldUnitId !== unitId) {
       await tx.unit.update({
         where: { id: oldUnitId },
-        data: { unitStatus: "available" as UnitStatus },
+        data: {
+          unitStatus: "available" as any,
+        },
       });
     }
 
-    // 3. Update the current unit's status based on the client's current status
     if (unitId) {
       await tx.unit.update({
         where: { id: unitId },
-        data: { unitStatus: newUnitStatus },
+        data: {
+          unitStatus: determineUnitStatus(clientStatus) as any,
+        },
       });
     }
 
@@ -126,24 +174,22 @@ export const updateClient = async (
   });
 };
 
+// ─── Delete Client ────────────────────────────────────────────────────────────
+
 export const deleteClient = async (id: number) => {
   return await prisma.$transaction(async (tx) => {
-    const existingClient = await tx.client.findUnique({
-      where: { id },
-    });
-
+    const existingClient = await tx.client.findUnique({ where: { id } });
     if (!existingClient) throw new Error("Client not found");
 
-    // If the client is deleted, free up the unit automatically
     if (existingClient.unitId) {
       await tx.unit.update({
         where: { id: existingClient.unitId },
-        data: { unitStatus: "available" as UnitStatus },
+        data: {
+          unitStatus: "available" as any,
+        },
       });
     }
 
-    return await tx.client.delete({
-      where: { id },
-    });
+    return await tx.client.delete({ where: { id } });
   });
 };

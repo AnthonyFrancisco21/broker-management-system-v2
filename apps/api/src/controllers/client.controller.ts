@@ -1,16 +1,15 @@
 import { Request, Response } from "express";
 import * as ClientService from "../services/client.service";
-import { ClientStatus } from "@prisma/client";
+import { ClientStatusValue } from "../services/client.service";
 
 export const getClients = async (req: Request, res: Response) => {
   try {
-    const brokerId = (req as any).user?.id;
-    const role = (req as any).user?.role; // FIX: Extract the role
+    const accountId = (req as any).user?.id;
+    const role = (req as any).user?.role;
 
-    if (!brokerId) return res.status(401).json({ error: "Unauthorized" });
+    if (!accountId) return res.status(401).json({ error: "Unauthorized" });
 
-    // FIX: Pass both brokerId and role to the service
-    const clients = await ClientService.getAllClients(brokerId, role);
+    const clients = await ClientService.getAllClients(accountId, role);
     res.json(clients);
   } catch (error: any) {
     res.status(400).json({ error: error.message });
@@ -19,8 +18,8 @@ export const getClients = async (req: Request, res: Response) => {
 
 export const createClient = async (req: Request, res: Response) => {
   try {
-    const brokerId = (req as any).user?.id;
-    if (!brokerId) return res.status(401).json({ error: "Unauthorized" });
+    const accountId = (req as any).user?.id;
+    if (!accountId) return res.status(401).json({ error: "Unauthorized" });
 
     const { firstName, lastName, email, clientStatus, unitId } = req.body;
 
@@ -28,9 +27,9 @@ export const createClient = async (req: Request, res: Response) => {
       firstName,
       lastName,
       email,
-      (clientStatus as ClientStatus) || "prospect",
+      (clientStatus as ClientStatusValue) || "prospect",
       unitId ? parseInt(String(unitId), 10) : null,
-      brokerId,
+      accountId,
     );
     res.status(201).json(newClient);
   } catch (error: any) {
@@ -48,7 +47,7 @@ export const updateClient = async (req: Request, res: Response) => {
       firstName,
       lastName,
       email,
-      clientStatus as ClientStatus,
+      clientStatus as ClientStatusValue,
       unitId ? parseInt(String(unitId), 10) : null,
     );
     res.json(updatedClient);

@@ -18,7 +18,8 @@ enum SystemRole {
 
 enum ClientStatus {
   prospect
-  viewing
+  onHold
+  paymentVerification
   reserved
   underNego
   rejected
@@ -29,12 +30,22 @@ enum ClientStatus {
 
 enum UnitStatus {
   available
-  viewing
+  onHold    // Unit is claimed by a public reservation — awaiting payment confirmation
   reserved
   underNego
   occupied
 
   @@map("unit_status_enum")
+}
+
+enum ReservationStatus {
+  pending           // Customer submitted — unit is onHold, 48hr clock running
+  paymentSubmitted  // Customer uploaded proof — awaiting manager verification
+  confirmed         // Manager verified — Client record auto-created, unit → reserved
+  expired           // 48hr elapsed with no payment — unit released back to available
+  cancelled         // Manually cancelled by manager
+
+  @@map("reservation_status_enum")
 }
 
 // ==============================
@@ -51,18 +62,28 @@ model SystemAccount {
   role      SystemRole @default(MANAGER)
   createdAt DateTime   @default(now())
 
+  // Agents/brokers this account manages
   brokersManaged Broker[] @relation("ManagerToBroker")
-  clientsManaged Client[] @relation("ManagerToClient")
+
+  // Clients this account created / is handling
+  clientsManaged Client[] @relation("AccountToClient")
+
+  // Reservations this account verified (payment confirmation)
+  verificationsHandled Reservation[] @relation("VerifiedByAccount")
 
   @@map("system_accounts")
 }
 
 // ==============================
-// 3. BROKERS (Now just an entity, no login)
+// 3. BROKERS
+// A profile-only entity managed by a SystemAccount.
+// No login. No connection to clients.
+// Renamed @map from "userID" → "brokerID" to reflect its actual role.
+// NOTE: Run `prisma migrate` after this change — it renames the column in the DB.
 // ==============================
 
 model Broker {
-  id                    Int       @id @default(autoincrement()) @map("userID")
+  id                    Int       @id @default(autoincrement()) @map("brokerID")
   firstName             String?
   lastName              String?
   middleName            String?
@@ -74,7 +95,7 @@ model Broker {
   businessAddress       String?
   brokersLicense        String?
   tin                   String?
-  primaryContact        String?   
+  primaryContact        String?
   viber                 String?
   whatsapp              String?
   messenger             String?
@@ -83,21 +104,24 @@ model Broker {
   emergencyRelationship String?
   isDeleted             Int       @default(0) @db.SmallInt
 
-  managerId             Int?           @map("managerID")
-  manager               SystemAccount? @relation("ManagerToBroker", fields: [managerId], references: [id])
+  // Which SystemAccount manages this broker
+  managerId Int?           @map("managerID")
+  manager   SystemAccount? @relation("ManagerToBroker", fields: [managerId], references: [id])
 
-  clients               Client[]
-  brokerPictures        BrokersPicture[]
-  educBackgrounds       EducBackground[]
-  salesExperiences      SalesExperience[]
-  seminars              Seminar[]
-  characterReferences   CharacterReference[]
+  // Profile detail relations (unchanged)
+  brokerPictures      BrokersPicture[]
+  educBackgrounds     EducBackground[]
+  salesExperiences    SalesExperience[]
+  seminars            Seminar[]
+  characterReferences CharacterReference[]
 
   @@map("broker")
 }
 
 // ==============================
 // 4. CLIENTS
+// 100% owned by a SystemAccount (manager or admin).
+// brokerId removed — that was a leftover from the old 3-role system.
 // ==============================
 
 model Client {
@@ -106,19 +130,19 @@ model Client {
   lastName     String?
   email        String?
   clientStatus ClientStatus @default(prospect) @map("client_status")
-  
-  // Who is the agent that brought them in? (Optional now)
-  brokerId     Int?         @map("brokerID")
-  broker       Broker?      @relation(fields: [brokerId], references: [id])
-  
-  // Who is the manager handling the reservation?
-  managerId    Int?         @map("handlingManagerID")
-  manager      SystemAccount? @relation("ManagerToClient", fields: [managerId], references: [id])
 
-  unitId       Int?         @map("unit_id")
-  unit         Unit?        @relation(fields: [unitId], references: [id])
-  
-  createdAt    DateTime     @default(now()) @map("created_at")
+  // The SystemAccount (manager/admin) who owns this client
+  accountId Int?           @map("accountID")
+  account   SystemAccount? @relation("AccountToClient", fields: [accountId], references: [id])
+
+  // Unit the client is interested in / has reserved
+  unitId Int?  @map("unit_id")
+  unit   Unit? @relation(fields: [unitId], references: [id])
+
+  // If this client was auto-created from a public reservation, link it here
+  reservation Reservation?
+
+  createdAt DateTime @default(now()) @map("created_at")
 
   @@map("clientstable")
 }
@@ -128,17 +152,18 @@ model Client {
 // ==============================
 
 model Unit {
-  id                  Int          @id @default(autoincrement()) @map("unit_id")
-  unitType            String?      @map("unit_type")
-  roomNo              String?      @map("room_no")
+  id                  Int        @id @default(autoincrement()) @map("unit_id")
+  unitType            String?    @map("unit_type")
+  roomNo              String?    @map("room_no")
   size                String?
   floor               Int?
-  installmentPerMonth Decimal?     @map("installment_per_month") @db.Decimal(10, 2)
-  price               Decimal?     @db.Decimal(15, 2)
-  unitStatus          UnitStatus   @default(available) @map("unit_status")
-  
-  clients             Client[]
-  unitPictures        UnitPicture[]
+  installmentPerMonth Decimal?   @map("installment_per_month") @db.Decimal(10, 2)
+  price               Decimal?   @db.Decimal(15, 2)
+  unitStatus          UnitStatus @default(available) @map("unit_status")
+
+  clients      Client[]
+  unitPictures UnitPicture[]
+  reservations Reservation[]
 
   @@map("unit_tbl")
 }
@@ -153,14 +178,86 @@ model UnitPicture {
 }
 
 // ==============================
-// 6. DETAILS (Unchanged)
+// 6. RESERVATIONS (NEW)
+//
+// Created when a customer clicks "Reserve" on the marketing site.
+//
+// Flow:
+//   1. Customer submits Gmail on marketing site
+//      → Reservation created (status: pending)
+//      → Unit status → onHold
+//      → Email sent with reservationId + token (for secure status lookup)
+//
+//   2a. Customer returns, uploads payment proof
+//       → paymentProofPath set, status → paymentSubmitted
+//
+//   2b. 48 hours pass with no proof
+//       → Cron job in api/: status → expired, unit → available
+//
+//   3. Manager verifies payment in system dashboard
+//      → status → confirmed
+//      → Client record auto-created (clientId set here)
+//      → Unit status → reserved
+//      → verifiedBy + verifiedAt recorded
+// ==============================
+
+model Reservation {
+  id     Int    @id @default(autoincrement()) @map("reservationID")
+
+  // Secure lookup token — random 32-char string generated at creation.
+  // Sent to customer via email. Required (alongside email) for status lookup.
+  // Never expose auto-increment IDs as the sole lookup key.
+  token  String @unique @map("reservation_token")
+
+  // Customer contact — collected from the marketing reservation form
+  customerEmail     String  @map("customer_email")
+  customerFirstName String? @map("customer_first_name")
+  customerLastName  String? @map("customer_last_name")
+  customerContact   String? @map("customer_contact")
+
+  status ReservationStatus @default(pending)
+
+  // Which unit was reserved
+  unitId Int  @map("unit_id")
+  unit   Unit @relation(fields: [unitId], references: [id])
+
+  // Auto-created Client record (set when manager confirms payment)
+  clientId Int?    @unique @map("clientID")
+  client   Client? @relation(fields: [clientId], references: [id])
+
+  // Timestamps
+  reservedAt  DateTime  @default(now()) @map("reserved_at")
+
+  // Set at creation: reservedAt + 48 hours
+  // Cron job checks this to auto-expire
+  expiresAt   DateTime  @map("expires_at")
+
+  // Payment proof — file path on the same server (like broker/unit pictures)
+  paymentProofPath    String?   @map("payment_proof_path")
+  paymentSubmittedAt  DateTime? @map("payment_submitted_at")
+
+  // Manager verification
+  verifiedAt  DateTime?      @map("verified_at")
+  verifiedById Int?          @map("verified_by_account_id")
+  verifiedBy   SystemAccount? @relation("VerifiedByAccount", fields: [verifiedById], references: [id])
+
+  // Optional: manager notes on verification
+  verificationNotes String? @map("verification_notes")
+
+  @@map("reservations")
+}
+
+// ==============================
+// 7. BROKER DETAILS
+// Unchanged — profile data for broker records.
 // ==============================
 
 model BrokersPicture {
   id        Int     @id @default(autoincrement()) @map("imageID")
   imagePath String?
-  brokerId  Int?    @map("userID")
+  brokerId  Int?    @map("brokerID")
   broker    Broker? @relation(fields: [brokerId], references: [id])
+
   @@map("brokerspicture")
 }
 
@@ -170,8 +267,9 @@ model EducBackground {
   highSchoolYear String?
   collegeDegree  String?
   collegeYear    String?
-  brokerId       Int?    @map("userID")
+  brokerId       Int?    @map("brokerID")
   broker         Broker? @relation(fields: [brokerId], references: [id])
+
   @@map("educbackground")
 }
 
@@ -180,8 +278,9 @@ model SalesExperience {
   company  String?
   position String?
   years    String?
-  brokerId Int?    @map("userID")
+  brokerId Int?    @map("brokerID")
   broker   Broker? @relation(fields: [brokerId], references: [id])
+
   @@map("salesexperience")
 }
 
@@ -191,8 +290,9 @@ model CharacterReference {
   relationship String?
   contactNo    String?
   email        String?
-  brokerId     Int?    @map("userID")
+  brokerId     Int?    @map("brokerID")
   broker       Broker? @relation(fields: [brokerId], references: [id])
+
   @@map("characterreference")
 }
 
@@ -201,7 +301,8 @@ model Seminar {
   seminars String?
   semDate  DateTime? @map("sem_date") @db.Date
   venue    String?
-  brokerId Int?      @map("userID")
+  brokerId Int?      @map("brokerID")
   broker   Broker?   @relation(fields: [brokerId], references: [id])
+
   @@map("seminarstable")
 }
