@@ -36,4 +36,6 @@ yarn-error.log*
 # Misc
 .DS_Store
 *.pem
-uploads/*
+
+*/uploads/*.jpg
+*/uploads/*.png
