@@ -6,7 +6,11 @@ import { prisma } from "@repo/database";
 import crypto from "crypto";
 import fs from "fs";
 import path from "path";
-import { sendReservationConfirmationEmail } from "./email.service";
+import {
+  sendReservationConfirmationEmail,
+  sendReservationApprovedEmail,
+  sendReservationRejectedEmail,
+} from "./email.service";
 
 // ─── Create Reservation ───────────────────────────────────────────────────────
 
@@ -19,7 +23,6 @@ export const createReservation = async (data: {
 }) => {
   const email = data.customerEmail.toLowerCase().trim();
 
-  // ── 1. Check unit is still available ─────────────────────────────────────
   const unit = await prisma.unit.findUnique({ where: { id: data.unitId } });
   if (!unit) throw new Error("Unit not found.");
   if (unit.unitStatus !== "available") {
@@ -28,17 +31,12 @@ export const createReservation = async (data: {
     );
   }
 
-  // ── 2. Double-booking guard ───────────────────────────────────────────────
-  // One email may only hold one active reservation at a time.
-  // "Active" = pending or paymentSubmitted.
   const existingActive = await prisma.reservation.findFirst({
     where: {
       customerEmail: email,
       status: { in: ["pending", "paymentSubmitted"] as any },
     },
-    include: {
-      unit: { select: { roomNo: true, unitType: true } },
-    },
+    include: { unit: { select: { roomNo: true, unitType: true } } },
   });
 
   if (existingActive) {
@@ -51,20 +49,16 @@ export const createReservation = async (data: {
       ]
         .filter(Boolean)
         .join(" · ") || "a unit";
-
     throw new Error(
       `You already have an active reservation for ${unitLabel}. ` +
         `Check your email for your reference, or visit the status page.`,
     );
   }
 
-  // ── 3. Generate a secure 64-char hex token ───────────────────────────────
   const token = crypto.randomBytes(32).toString("hex");
-  const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000); // +48 hours
+  const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000);
 
-  // ── 4. Transaction: client → reservation → unit lock ─────────────────────
   const reservation = await prisma.$transaction(async (tx) => {
-    // Auto-create a Client record so manager sees it immediately in the dashboard
     const newClient = await tx.client.create({
       data: {
         firstName: data.customerFirstName.trim(),
@@ -72,11 +66,9 @@ export const createReservation = async (data: {
         email: email,
         clientStatus: "onHold" as any,
         unitId: data.unitId,
-        // accountId null — unassigned; manager can claim from the dashboard
       },
     });
 
-    // Create reservation linked to the client
     const res = await tx.reservation.create({
       data: {
         token,
@@ -96,7 +88,6 @@ export const createReservation = async (data: {
       },
     });
 
-    // Lock the unit
     await tx.unit.update({
       where: { id: data.unitId },
       data: { unitStatus: "onHold" as any },
@@ -105,7 +96,6 @@ export const createReservation = async (data: {
     return res;
   });
 
-  // ── 5. Send confirmation email (non-blocking) ─────────────────────────────
   sendReservationConfirmationEmail(reservation).catch((err) => {
     console.error("[Email] Failed to send confirmation:", err?.message ?? err);
   });
@@ -118,8 +108,7 @@ export const createReservation = async (data: {
   };
 };
 
-// ─── Lookup Reservation ───────────────────────────────────────────────────────
-// Requires BOTH email AND token. Never expose the integer reservation ID.
+// ─── Lookup Reservation (public — marketing status page) ─────────────────────
 
 export const lookupReservation = async (email: string, token: string) => {
   const reservation = await prisma.reservation.findFirst({
@@ -155,9 +144,7 @@ export const lookupReservation = async (email: string, token: string) => {
   };
 };
 
-// ─── Submit Payment Proof ─────────────────────────────────────────────────────
-// Clock stops here — status → paymentSubmitted. Unit stays onHold.
-// Manager verifies at their own pace.
+// ─── Submit Payment Proof (public — marketing status page) ───────────────────
 
 export const submitPaymentProof = async (
   token: string,
@@ -189,7 +176,6 @@ export const submitPaymentProof = async (
       "The 48-hour payment window has passed. Please contact us directly.",
     );
 
-  // Save file to disk
   const ext = path.extname(file.originalname);
   const safeToken = reservation.token.slice(0, 8);
   const fileName = `proof-${safeToken}-${Date.now()}${ext}`;
@@ -207,7 +193,6 @@ export const submitPaymentProof = async (
       },
     });
 
-    // Keep client status in sync
     if (reservation.clientId) {
       await tx.client.update({
         where: { id: reservation.clientId },
@@ -217,9 +202,156 @@ export const submitPaymentProof = async (
   });
 };
 
-// ─── Expire Reservations (Cron) ───────────────────────────────────────────────
-// Call every 15 min from index.ts. Only expires `pending` reservations.
-// Does NOT auto-release units — manager reviews and acts manually.
+// ─── Get All Reservations (dashboard — all managers see all) ─────────────────
+
+export const getAllReservations = async () => {
+  return await prisma.reservation.findMany({
+    include: {
+      unit: {
+        select: {
+          id: true,
+          roomNo: true,
+          unitType: true,
+          floor: true,
+          price: true,
+        },
+      },
+      client: {
+        select: { id: true, firstName: true, lastName: true, email: true },
+      },
+      verifiedBy: {
+        select: { firstName: true, lastName: true },
+      },
+    },
+    orderBy: [
+      // Actionable items first
+      { status: "asc" },
+      { reservedAt: "desc" },
+    ],
+  });
+};
+
+// ─── Confirm Reservation (manager action) ────────────────────────────────────
+// Payment verified — unit → reserved, client → reserved, reservation → confirmed
+
+export const confirmReservation = async (
+  reservationId: number,
+  accountId: number,
+  notes?: string,
+) => {
+  const reservation = await prisma.reservation.findUnique({
+    where: { id: reservationId },
+    include: {
+      unit: {
+        select: { roomNo: true, unitType: true, floor: true, price: true },
+      },
+    },
+  });
+
+  if (!reservation) throw new Error("Reservation not found.");
+  if (reservation.status === "confirmed") throw new Error("Already confirmed.");
+  if (reservation.status === "cancelled")
+    throw new Error("This reservation was cancelled.");
+
+  await prisma.$transaction(async (tx) => {
+    await tx.reservation.update({
+      where: { id: reservationId },
+      data: {
+        status: "confirmed" as any,
+        verifiedAt: new Date(),
+        verifiedById: accountId,
+        verificationNotes: notes ?? null,
+      },
+    });
+
+    await tx.unit.update({
+      where: { id: reservation.unitId },
+      data: { unitStatus: "reserved" as any },
+    });
+
+    if (reservation.clientId) {
+      await tx.client.update({
+        where: { id: reservation.clientId },
+        data: {
+          clientStatus: "reserved" as any,
+          accountId: accountId,
+        },
+      });
+    }
+  });
+
+  // Send approval email (non-blocking)
+  sendReservationApprovedEmail({
+    customerEmail: reservation.customerEmail,
+    customerFirstName: reservation.customerFirstName,
+    customerLastName: reservation.customerLastName,
+    reservedAt: reservation.reservedAt,
+    verifiedAt: new Date(),
+    notes: notes || null,
+    unit: reservation.unit,
+  }).catch((err) => {
+    console.error("[Email] Approval email failed:", err?.message ?? err);
+  });
+};
+
+// ─── Reject Reservation ───────────────────────────────────────────────────────
+
+export const rejectReservation = async (
+  reservationId: number,
+  accountId: number,
+  notes?: string,
+) => {
+  const reservation = await prisma.reservation.findUnique({
+    where: { id: reservationId },
+    include: {
+      unit: {
+        select: { roomNo: true, unitType: true, floor: true },
+      },
+    },
+  });
+
+  if (!reservation) throw new Error("Reservation not found.");
+  if (reservation.status === "confirmed")
+    throw new Error(
+      "Cannot reject a confirmed reservation. Contact your admin.",
+    );
+  if (reservation.status === "cancelled") throw new Error("Already cancelled.");
+
+  await prisma.$transaction(async (tx) => {
+    await tx.reservation.update({
+      where: { id: reservationId },
+      data: {
+        status: "cancelled" as any,
+        verifiedAt: new Date(),
+        verifiedById: accountId,
+        verificationNotes: notes ?? null,
+      },
+    });
+
+    await tx.unit.update({
+      where: { id: reservation.unitId },
+      data: { unitStatus: "available" as any },
+    });
+
+    if (reservation.clientId) {
+      await tx.client.update({
+        where: { id: reservation.clientId },
+        data: { clientStatus: "rejected" as any },
+      });
+    }
+  });
+
+  // Send rejection email (non-blocking)
+  sendReservationRejectedEmail({
+    customerEmail: reservation.customerEmail,
+    customerFirstName: reservation.customerFirstName,
+    notes: notes || null,
+    unit: reservation.unit,
+  }).catch((err) => {
+    console.error("[Email] Rejection email failed:", err?.message ?? err);
+  });
+};
+// ─── Expire Reservations (cron) ───────────────────────────────────────────────
 
 export const expireReservations = async (): Promise<number> => {
   const toExpire = await prisma.reservation.findMany({
@@ -242,7 +374,6 @@ export const expireReservations = async (): Promise<number> => {
       where: { id: { in: ids } },
       data: { status: "expired" as any },
     });
-
     if (clientIds.length > 0) {
       await tx.client.updateMany({
         where: { id: { in: clientIds } },

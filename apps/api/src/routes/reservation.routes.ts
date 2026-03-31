@@ -1,31 +1,46 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // apps/api/src/routes/reservation.routes.ts
-// All routes are public — no auth middleware — the marketing site uses these.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { Router } from "express";
 import multer from "multer";
+import { authenticate, authorize } from "../middleware/auth.middleware";
 import * as reservationController from "../controllers/reservation.controller";
 
 const router = Router();
 
-// Store files in memory — the service writes them to disk
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB hard limit
+  limits: { fileSize: 5 * 1024 * 1024 },
 });
 
-// POST /api/reservations         — create a new reservation
+// ── Public routes (no auth — used by marketing site) ─────────────────────────
 router.post("/", reservationController.createReservation);
-
-// POST /api/reservations/lookup  — look up status by email + token
 router.post("/lookup", reservationController.lookupReservation);
-
-// POST /api/reservations/payment — upload payment proof
 router.post(
   "/payment",
   upload.single("proof"),
   reservationController.submitPaymentProof,
+);
+
+// ── Authenticated routes (dashboard — manager/admin only) ────────────────────
+router.get(
+  "/",
+  authenticate,
+  authorize(["ADMIN", "MANAGER"]),
+  reservationController.getAllReservations,
+);
+router.post(
+  "/:id/confirm",
+  authenticate,
+  authorize(["ADMIN", "MANAGER"]),
+  reservationController.confirmReservation,
+);
+router.post(
+  "/:id/reject",
+  authenticate,
+  authorize(["ADMIN", "MANAGER"]),
+  reservationController.rejectReservation,
 );
 
 export default router;

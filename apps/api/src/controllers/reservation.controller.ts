@@ -5,8 +5,7 @@
 import { Request, Response } from "express";
 import * as reservationService from "../services/reservation.service";
 
-// ─── POST /reservations ───────────────────────────────────────────────────────
-// Public. Called from the marketing site reservation form.
+// ─── POST /api/reservations (public) ─────────────────────────────────────────
 
 export const createReservation = async (req: Request, res: Response) => {
   try {
@@ -24,7 +23,6 @@ export const createReservation = async (req: Request, res: Response) => {
       });
     }
 
-    // Basic email format check
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(customerEmail)) {
       return res
@@ -55,8 +53,7 @@ export const createReservation = async (req: Request, res: Response) => {
   }
 };
 
-// ─── POST /reservations/lookup ────────────────────────────────────────────────
-// Public. Called from the status page lookup form.
+// ─── POST /api/reservations/lookup (public) ───────────────────────────────────
 
 export const lookupReservation = async (req: Request, res: Response) => {
   try {
@@ -88,9 +85,7 @@ export const lookupReservation = async (req: Request, res: Response) => {
   }
 };
 
-// ─── POST /reservations/payment ───────────────────────────────────────────────
-// Public. Called from the status page upload form.
-// Expects multipart/form-data with fields: email, token, and file: proof.
+// ─── POST /api/reservations/payment (public) ─────────────────────────────────
 
 export const submitPaymentProof = async (req: Request, res: Response) => {
   try {
@@ -108,7 +103,6 @@ export const submitPaymentProof = async (req: Request, res: Response) => {
         .json({ message: "Please attach your payment proof file." });
     }
 
-    // File type guard — only images and PDF
     const allowedMimes = [
       "image/jpeg",
       "image/jpg",
@@ -121,8 +115,6 @@ export const submitPaymentProof = async (req: Request, res: Response) => {
         message: "Only JPG, PNG, WEBP, or PDF files are accepted.",
       });
     }
-
-    // 5 MB size limit
     if (file.size > 5 * 1024 * 1024) {
       return res.status(400).json({ message: "File must be under 5 MB." });
     }
@@ -137,5 +129,62 @@ export const submitPaymentProof = async (req: Request, res: Response) => {
     return res
       .status(400)
       .json({ message: err.message ?? "Failed to submit payment proof." });
+  }
+};
+
+// ─── GET /api/reservations (auth — dashboard) ────────────────────────────────
+
+export const getAllReservations = async (req: Request, res: Response) => {
+  try {
+    const reservations = await reservationService.getAllReservations();
+    return res.json(reservations);
+  } catch (err: any) {
+    return res
+      .status(500)
+      .json({ message: err.message ?? "Failed to fetch reservations." });
+  }
+};
+
+// ─── POST /api/reservations/:id/confirm (auth — dashboard) ───────────────────
+
+export const confirmReservation = async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    const accountId = (req as any).user?.id;
+    const { notes } = req.body;
+
+    if (!accountId)
+      return res.status(401).json({ message: "Not authenticated." });
+    if (isNaN(id))
+      return res.status(400).json({ message: "Invalid reservation ID." });
+
+    await reservationService.confirmReservation(id, accountId, notes);
+    return res.json({ message: "Reservation confirmed." });
+  } catch (err: any) {
+    return res
+      .status(400)
+      .json({ message: err.message ?? "Failed to confirm." });
+  }
+};
+
+// ─── POST /api/reservations/:id/reject (auth — dashboard) ────────────────────
+
+export const rejectReservation = async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    const accountId = (req as any).user?.id;
+    const { notes } = req.body;
+
+    if (!accountId)
+      return res.status(401).json({ message: "Not authenticated." });
+    if (isNaN(id))
+      return res.status(400).json({ message: "Invalid reservation ID." });
+
+    await reservationService.rejectReservation(id, accountId, notes);
+    return res.json({ message: "Reservation rejected." });
+  } catch (err: any) {
+    return res
+      .status(400)
+      .json({ message: err.message ?? "Failed to reject." });
   }
 };
