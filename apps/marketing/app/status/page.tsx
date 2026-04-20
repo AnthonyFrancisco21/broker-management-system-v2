@@ -463,7 +463,7 @@ export default function StatusPage() {
               className="text-[15px] font-semibold text-slate-900 leading-tight"
               style={{ fontFamily: "'Cormorant Garamond',serif" }}
             >
-              Residences at the Tower
+              August Residences
             </p>
           </div>
         </div>
@@ -926,8 +926,7 @@ export default function StatusPage() {
           className="text-[12px] text-slate-400 tracking-wide"
           style={{ fontFamily: "Lato,sans-serif" }}
         >
-          © {new Date().getFullYear()} Residences at the Tower. All rights
-          reserved.
+          © {new Date().getFullYear()} August Residences. All rights reserved.
         </p>
         <a
           href="/"

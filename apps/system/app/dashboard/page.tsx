@@ -19,6 +19,8 @@ export default function DashboardRoot() {
     // 2. Logged in? Check role and redirect to the specific folder.
     switch (user.role) {
       case "ADMIN":
+        router.push("/dashboard/admin");
+        break;
       case "MANAGER":
         router.push("/dashboard/manager");
         break;

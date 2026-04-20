@@ -64,6 +64,7 @@ export const createReservation = async (data: {
         firstName: data.customerFirstName.trim(),
         lastName: data.customerLastName.trim(),
         email: email,
+        contactNo: data.customerContact?.trim() ?? null,
         clientStatus: "onHold" as any,
         unitId: data.unitId,
       },

@@ -75,7 +75,7 @@ function emailWrapper(content: string): string {
 <div style="max-width:580px;margin:40px auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #E8E4DA;box-shadow:0 4px 24px rgba(0,0,0,0.06);">
   ${content}
   <div style="background:#FAF9F7;border-top:1px solid #E8E4DA;padding:18px 32px;text-align:center;">
-    <p style="margin:0;font-size:11px;color:#B8B0A8;">© ${new Date().getFullYear()} Residences at the Tower. All rights reserved.</p>
+    <p style="margin:0;font-size:11px;color:#B8B0A8;">© ${new Date().getFullYear()} August Residences. All rights reserved.</p>
   </div>
 </div>
 </body>
@@ -137,12 +137,12 @@ export const sendReservationConfirmationEmail = async (reservation: {
     .join("");
 
   const info = await transporter.sendMail({
-    from: `"Residences at the Tower" <${process.env.SMTP_FROM ?? process.env.SMTP_USER}>`,
+    from: `"August Residences" <${process.env.SMTP_FROM ?? process.env.SMTP_USER}>`,
     to: reservation.customerEmail,
     subject: `Unit On Hold — Ref: ${reservation.token.slice(0, 8).toUpperCase()}`,
     html: emailWrapper(`
       <div style="background:#1A140A;padding:36px 32px;text-align:center;">
-        <p style="margin:0 0 8px;color:#B8975A;font-size:10px;letter-spacing:0.35em;text-transform:uppercase;">Residences at the Tower</p>
+        <p style="margin:0 0 8px;color:#B8975A;font-size:10px;letter-spacing:0.35em;text-transform:uppercase;">August Residences</p>
         <h1 style="margin:0;color:#FFFFFF;font-size:26px;font-weight:300;letter-spacing:0.04em;">Your Unit is On Hold</h1>
       </div>
       <div style="padding:36px 32px;">
@@ -216,12 +216,12 @@ export const sendReservationApprovedEmail = async (data: {
   const confirmedDate = formatPhDate(data.verifiedAt);
 
   const info = await transporter.sendMail({
-    from: `"Residences at the Tower" <${process.env.SMTP_FROM ?? process.env.SMTP_USER}>`,
+    from: `"August Residences" <${process.env.SMTP_FROM ?? process.env.SMTP_USER}>`,
     to: data.customerEmail,
     subject: `🎉 Reservation Confirmed — ${unitLabel}`,
     html: emailWrapper(`
       <div style="background:#1A140A;padding:36px 32px;text-align:center;">
-        <p style="margin:0 0 8px;color:#B8975A;font-size:10px;letter-spacing:0.35em;text-transform:uppercase;">Residences at the Tower</p>
+        <p style="margin:0 0 8px;color:#B8975A;font-size:10px;letter-spacing:0.35em;text-transform:uppercase;">August Residences</p>
         <h1 style="margin:0;color:#FFFFFF;font-size:26px;font-weight:300;letter-spacing:0.04em;">Reservation Confirmed</h1>
       </div>
       <div style="padding:36px 32px;">
@@ -272,7 +272,7 @@ export const sendReservationApprovedEmail = async (data: {
           Our team will be reaching out to you shortly to discuss the next steps in the reservation process, including documentation and payment schedule.
         </p>
         <p style="font-size:13px;color:#9A9090;line-height:1.6;margin:0;">
-          Thank you for choosing Residences at the Tower. We look forward to welcoming you. Questions? Reply to this email.
+          Thank you for choosing August Residences. We look forward to welcoming you. Questions? Reply to this email.
         </p>
       </div>`),
   });
@@ -303,12 +303,12 @@ export const sendReservationRejectedEmail = async (data: {
   const floorLabel = data.unit?.floor ? ` (Floor ${data.unit.floor})` : "";
 
   const info = await transporter.sendMail({
-    from: `"Residences at the Tower" <${process.env.SMTP_FROM ?? process.env.SMTP_USER}>`,
+    from: `"August Residences" <${process.env.SMTP_FROM ?? process.env.SMTP_USER}>`,
     to: data.customerEmail,
     subject: `Update on Your Reservation — ${unitLabel}`,
     html: emailWrapper(`
       <div style="background:#1A140A;padding:36px 32px;text-align:center;">
-        <p style="margin:0 0 8px;color:#B8975A;font-size:10px;letter-spacing:0.35em;text-transform:uppercase;">Residences at the Tower</p>
+        <p style="margin:0 0 8px;color:#B8975A;font-size:10px;letter-spacing:0.35em;text-transform:uppercase;">August Residences</p>
         <h1 style="margin:0;color:#FFFFFF;font-size:26px;font-weight:300;letter-spacing:0.04em;">Reservation Update</h1>
       </div>
       <div style="padding:36px 32px;">
@@ -346,7 +346,7 @@ export const sendReservationRejectedEmail = async (data: {
         <a href="${marketingUrl}" style="display:inline-block;background:#1A140A;color:#fff;padding:13px 28px;border-radius:8px;text-decoration:none;font-size:12px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:28px;">Browse Available Units →</a>
 
         <p style="font-size:13px;color:#9A9090;line-height:1.6;margin:0;">
-          We appreciate your interest in Residences at the Tower and hope to assist you again soon.
+          We appreciate your interest in August Residences and hope to assist you again soon.
         </p>
       </div>`),
   });

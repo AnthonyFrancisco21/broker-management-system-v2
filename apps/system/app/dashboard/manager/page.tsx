@@ -123,7 +123,7 @@ export default function ManagerDashboard() {
               icon={TrendingUp}
               label="Warm Pipeline"
               value={clientKpis.warmPipeline}
-              sub="Viewing, negotiating & reserved"
+              sub="Negotiating & Reserved"
               accentClasses="bg-amber-50 text-amber-600"
               isLoading={isLoading}
             />

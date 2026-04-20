@@ -116,6 +116,7 @@
     firstName    String?
     lastName     String?
     email        String?
+    contactNo    String?
     clientStatus ClientStatus @default(prospect) @map("client_status")
 
     accountId Int?           @map("accountID")
