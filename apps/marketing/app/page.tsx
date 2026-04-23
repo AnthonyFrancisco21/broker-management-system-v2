@@ -21,7 +21,6 @@ export default function ReservationPage() {
 
   const [selectedFloor, setSelectedFloor] = useState<number | null>(null);
   const [activeUnit, setActiveUnit] = useState<Unit | null>(null);
-  // Unit being reserved — triggers the reservation form modal
   const [reservingUnit, setReservingUnit] = useState<Unit | null>(null);
 
   const loadUnits = async () => {
@@ -51,12 +50,6 @@ export default function ReservationPage() {
         const floorGroup = floorsMap.get(dbUnit.floor)!;
         const sqmValue = parseInt(dbUnit.size?.replace(" sqm", "") || "0", 10);
 
-        // Map DB status to visual status shown on the floor plan
-        // "available"  → available (green, clickable)
-        // "onHold"     → reserved  (shown as taken, not clickable)
-        // "reserved"   → reserved
-        // "underNego"  → reserved
-        // "occupied"   → sold
         let visualStatus: UnitStatus = "available";
         if (["reserved", "underNego", "onHold"].includes(dbUnit.unitStatus)) {
           visualStatus = "reserved";
@@ -102,15 +95,11 @@ export default function ReservationPage() {
     setActiveUnit(null);
   };
 
-  // Called from UnitModal when customer clicks "Reserve"
-  // Closes the info modal and opens the reservation form
   const handleReserve = (unit: Unit) => {
     setActiveUnit(null);
     setReservingUnit(unit);
   };
 
-  // Called after successful reservation — reload units so the floor plan
-  // reflects the newly onHold unit
   const handleReservationSuccess = () => {
     setReservingUnit(null);
     loadUnits();
@@ -166,10 +155,12 @@ export default function ReservationPage() {
           borderColor: "#E8E4DA",
         }}
       >
+        {/* Logo + Building Name */}
         <div className="flex items-center gap-3">
-          <div
-            className="w-0.5 h-7 rounded-full"
-            style={{ background: "#B8975A" }}
+          <img
+            src="/AR-LOGO.png"
+            alt="August Residences"
+            className="h-10 w-auto object-contain"
           />
           <div>
             <p
@@ -190,6 +181,7 @@ export default function ReservationPage() {
           </div>
         </div>
 
+        {/* Nav Links */}
         <div className="hidden md:flex items-center gap-8">
           {[
             { label: "Reservation", href: "/", active: true },
@@ -394,6 +386,7 @@ export default function ReservationPage() {
         >
           © {new Date().getFullYear()} August Residences. All rights reserved.
         </p>
+
         <a
           href="/status"
           className="text-[12px] tracking-[0.2em] uppercase transition-opacity hover:opacity-70"

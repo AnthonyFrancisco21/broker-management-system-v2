@@ -15,6 +15,11 @@ export const metadata: Metadata = {
   title: "Residences at the Tower | Reservation Portal",
   description:
     "Explore available luxury studio suites and begin your reservation.",
+  icons: {
+    icon: "/SGW-LOGO.jpeg", // browser tab favicon
+    shortcut: "/SGW-LOGO.jpeg", // shortcut icon
+    apple: "/SGW-LOGO.jpeg", // iOS home screen icon
+  },
 };
 
 export default function RootLayout({

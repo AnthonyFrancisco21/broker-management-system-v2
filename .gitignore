@@ -42,3 +42,5 @@ yarn-error.log*
 
 apps/api/uploads/*.jpg
 apps/api/uploads/*.png
+
+seed.ts

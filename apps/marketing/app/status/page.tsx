@@ -469,8 +469,6 @@ export default function StatusPage() {
         </div>
         <div className="hidden md:flex items-center gap-8">
           {[
-            { label: "Overview", href: "#", active: false },
-            { label: "Amenities", href: "#", active: false },
             { label: "Reservation", href: "/", active: false },
             { label: "Check Status", href: "/status", active: true },
           ].map(({ label, href, active }) => (
