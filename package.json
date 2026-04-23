@@ -2,13 +2,13 @@
   "name": "broker-system",
   "private": true,
   "scripts": {
-    "build": "turbo run build",
-    "dev": "turbo run dev",
-    "lint": "turbo run lint",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "check-types": "turbo run check-types"
+    "dev": "concurrently \"npm run dev:api\" \"npm run dev:system\" \"npm run dev:marketing\"",
+    "dev:api": "npm --prefix apps/api run dev",
+    "dev:system": "npm --prefix apps/system run dev",
+    "dev:marketing": "npm --prefix apps/marketing run dev"
   },
   "devDependencies": {
+    "concurrently": "^9.2.1",
     "prettier": "^3.7.4",
     "prisma": "^7.4.1",
     "turbo": "^2.8.3",

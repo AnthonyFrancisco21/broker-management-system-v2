@@ -170,7 +170,6 @@ export default function AddClientForm({
             }}
           >
             <option value="prospect">Prospect</option>
-            <option value="viewing">Viewing</option>
             <option value="reserved">Reserved</option>
             <option value="underNego">Under Negotiation</option>
             <option value="rejected">Rejected</option>
