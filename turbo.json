@@ -17,5 +17,21 @@
       "cache": false,
       "persistent": true
     }
-  }
+  },
+  "globalEnv": [
+    "DATABASE_URL",
+    "JWT_SECRET",
+    "NODE_ENV",
+    "NEXT_PUBLIC_API_URL",
+    "PORT",
+    "SMTP_HOST",
+    "SMTP_PORT",
+    "SMTP_SECURE",
+    "SMTP_USER",
+    "SMTP_PASS",
+    "SMTP_FROM",
+    "BANK_NAME",
+    "BANK_ACCOUNT_NAME",
+    "BANK_ACCOUNT_NUMBER"
+  ]
 }
