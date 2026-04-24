@@ -3,19 +3,45 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "devCommand": "npm run dev",
-  "env": [
-    "DATABASE_URL",
-    "JWT_SECRET",
-    "NODE_ENV",
-    "PORT",
-    "SMTP_HOST",
-    "SMTP_PORT",
-    "SMTP_SECURE",
-    "SMTP_USER",
-    "SMTP_PASS",
-    "SMTP_FROM",
-    "BANK_NAME",
-    "BANK_ACCOUNT_NAME",
-    "BANK_ACCOUNT_NUMBER"
-  ]
+  "env": {
+    "DATABASE_URL": {
+      "required": true
+    },
+    "JWT_SECRET": {
+      "required": true
+    },
+    "NODE_ENV": {
+      "required": false
+    },
+    "PORT": {
+      "required": false
+    },
+    "SMTP_HOST": {
+      "required": false
+    },
+    "SMTP_PORT": {
+      "required": false
+    },
+    "SMTP_SECURE": {
+      "required": false
+    },
+    "SMTP_USER": {
+      "required": false
+    },
+    "SMTP_PASS": {
+      "required": false
+    },
+    "SMTP_FROM": {
+      "required": false
+    },
+    "BANK_NAME": {
+      "required": false
+    },
+    "BANK_ACCOUNT_NAME": {
+      "required": false
+    },
+    "BANK_ACCOUNT_NUMBER": {
+      "required": false
+    }
+  }
 }
