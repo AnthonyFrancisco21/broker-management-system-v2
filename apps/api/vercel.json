@@ -1,0 +1,21 @@
+{
+  "version": 2,
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "devCommand": "npm run dev",
+  "env": [
+    "DATABASE_URL",
+    "JWT_SECRET",
+    "NODE_ENV",
+    "PORT",
+    "SMTP_HOST",
+    "SMTP_PORT",
+    "SMTP_SECURE",
+    "SMTP_USER",
+    "SMTP_PASS",
+    "SMTP_FROM",
+    "BANK_NAME",
+    "BANK_ACCOUNT_NAME",
+    "BANK_ACCOUNT_NUMBER"
+  ]
+}
