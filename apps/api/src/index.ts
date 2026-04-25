@@ -16,6 +16,31 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// ✅ ENABLE CORS - Allow marketing and system apps
+const allowedOrigins = [
+  "https://broker-management-system-v2-marketi.vercel.app", // Marketing app
+  "https://broker-management-system-v2-system.vercel.app", // System/Admin app
+  "http://localhost:3000", // Local marketing
+  "http://localhost:3001", // Local API
+  "http://localhost:3002", // Local system
+];
+
+app.use(
+  cors({
+    origin: allowedOrigins,
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }),
+);
+
+app.use(express.json());
+
+// Health check route
+app.get("/api/health", (req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
 // ROUTES
 app.use("/api/brokers", brokerRoutes);
 app.use("/api/clients", clientRoutes);
