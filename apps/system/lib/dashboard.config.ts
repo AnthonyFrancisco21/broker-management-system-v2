@@ -22,6 +22,13 @@ export interface StatusDisplayConfig {
   chartColor: string;
 }
 
+export const ACTIVE_DEAL_STATUSES = [
+  "active",
+  "pending",
+  "in_progress",
+  "negotiating",
+];
+
 export const CLIENT_STATUS_CONFIG: Record<ClientStatus, StatusDisplayConfig> = {
   prospect: {
     label: "Prospect",
