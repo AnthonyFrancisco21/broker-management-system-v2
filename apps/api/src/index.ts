@@ -11,7 +11,7 @@ import reservations from "./routes/reservation.routes";
 
 const app = express();
 
-// ✅ ENABLE CORS - Allow marketing and system apps (ONLY ONCE)
+// ✅ ENABLE CORS
 const allowedOrigins = [
   "https://broker-management-system-v2-marketi.vercel.app",
   "https://broker-management-system-v2-system.vercel.app",
@@ -44,6 +44,14 @@ app.use("/api/units", unitRoutes);
 app.use("/api/uploads", express.static("uploads"));
 app.use("/api/reservations", reservations);
 
-app.listen(process.env.PORT || 5000, () => {
-  console.log(`Server running at http://localhost:${process.env.PORT || 5000}`);
-});
+// ✅ For local development
+if (process.env.NODE_ENV !== "production") {
+  app.listen(process.env.PORT || 5000, () => {
+    console.log(
+      `Server running at http://localhost:${process.env.PORT || 5000}`,
+    );
+  });
+}
+
+// ✅ For Vercel serverless
+export default app;
