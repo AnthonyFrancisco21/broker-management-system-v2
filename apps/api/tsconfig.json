@@ -1,7 +1,6 @@
 {
   "extends": "../../packages/typescript-config/base.json",
   "compilerOptions": {
-    "ignoreDeprecations": "6.0", // ← Add this line
     "target": "ES2020",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
@@ -16,7 +15,6 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-    "baseUrl": ".",
     "paths": {
       "@repo/database": ["../../packages/database/dist/index.js"],
       "@repo/database/*": ["../../packages/database/dist/*"]
