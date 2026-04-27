@@ -6,12 +6,11 @@
     "dev:api": "npm --prefix apps/api run dev",
     "dev:system": "npm --prefix apps/system run dev",
     "dev:marketing": "npm --prefix apps/marketing run dev",
-    "postinstall": "npx prisma generate --schema=packages/database/prisma/schema.prisma"
+    "postinstall": "prisma generate --schema=packages/database/prisma/schema.prisma"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",
     "prettier": "^3.7.4",
-    "prisma": "^7.4.1",
     "turbo": "^2.8.3",
     "typescript": "5.9.2"
   },
@@ -24,6 +23,7 @@
     "packages/*"
   ],
   "dependencies": {
-    "@prisma/client": "^7.4.1"
+    "@prisma/client": "^7.4.1",
+    "prisma": "^7.4.1"
   }
 }

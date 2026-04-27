@@ -33,8 +33,9 @@ const corsOptions = {
 // Apply CORS middleware globally
 app.use(cors(corsOptions));
 
-// Explicitly handle pre-flight OPTIONS requests for all routes (Crucial for Vercel)
-app.options("*", cors(corsOptions));
+// Explicitly handle pre-flight OPTIONS requests using a pure RegExp object
+// This completely bypasses the Express 5 / path-to-regexp string parsing bug
+app.options(/.*/, cors(corsOptions));
 
 app.use(express.json());
 
