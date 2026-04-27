@@ -1,4 +1,15 @@
 {
   "version": 2,
-  "buildCommand": "turbo run build --filter=api"
+  "builds": [
+    {
+      "src": "dist/index.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "dist/index.js"
+    }
+  ]
 }

@@ -43,8 +43,12 @@ app.use("/api/units", unitRoutes);
 app.use("/api/uploads", express.static("uploads"));
 app.use("/api/reservations", reservations);
 
+// MUST ONLY LISTEN IN LOCAL DEVELOPMENT.
+// Vercel serverless functions handle the listening automatically.
 if (process.env.NODE_ENV !== "production") {
-  app.listen(5000, () => console.log("Running on 5000"));
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => console.log(`Running locally on port ${PORT}`));
 }
 
+// THIS IS CRITICAL FOR VERCEL
 export default app;
