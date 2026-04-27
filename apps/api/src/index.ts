@@ -3,11 +3,11 @@ dotenv.config();
 
 import express from "express";
 import cors from "cors";
-// import brokerRoutes from "./routes/broker.routes";
-// import authRoutes from "./routes/auth.routes";
-// import unitRoutes from "./routes/unit.routes";
-// import clientRoutes from "./routes/client.routes";
-// import reservations from "./routes/reservation.routes";
+import brokerRoutes from "./routes/broker.routes";
+import authRoutes from "./routes/auth.routes";
+import unitRoutes from "./routes/unit.routes";
+import clientRoutes from "./routes/client.routes";
+import reservations from "./routes/reservation.routes";
 
 const app = express();
 
@@ -35,16 +35,16 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
-// Routes disabled temporarily
-// app.use("/api/brokers", brokerRoutes);
-// app.use("/api/clients", clientRoutes);
-// app.use("/api/auth", authRoutes);
-// app.use("/api/units", unitRoutes);
-// app.use("/api/uploads", express.static("uploads"));
-// app.use("/api/reservations", reservations);
+// ✅ ROUTES ENABLED
+app.use("/api/brokers", brokerRoutes);
+app.use("/api/clients", clientRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/units", unitRoutes);
+app.use("/api/uploads", express.static("uploads"));
+app.use("/api/reservations", reservations);
 
 if (process.env.NODE_ENV !== "production") {
-  app.listen(3000, () => console.log("Running on 3000"));
+  app.listen(5000, () => console.log("Running on 5000"));
 }
 
 export default app;
