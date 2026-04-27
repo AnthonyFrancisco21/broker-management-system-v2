@@ -6,7 +6,7 @@
     "dev:api": "npm --prefix apps/api run dev",
     "dev:system": "npm --prefix apps/system run dev",
     "dev:marketing": "npm --prefix apps/marketing run dev",
-    "postinstall": "prisma generate --schema=packages/database/prisma/schema.prisma"
+    "postinstall": "npx prisma generate --schema=packages/database/prisma/schema.prisma"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",
