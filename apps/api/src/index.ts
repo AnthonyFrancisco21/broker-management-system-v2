@@ -15,6 +15,7 @@ import reservations from "./routes/reservation.routes";
 
 const app = express();
 
+// CORS allowed origins
 const allowedOrigins = [
   "https://broker-management-system-v2-marketi.vercel.app",
   "https://broker-management-system-v2-system.vercel.app",
@@ -23,18 +24,26 @@ const allowedOrigins = [
   "http://localhost:3002",
 ];
 
+// Use a function for origin to avoid Vercel/Express quirks
 const corsOptions = {
-  origin: allowedOrigins,
+  origin: function (
+    origin: string | undefined,
+    callback: (err: Error | null, allow?: boolean) => void,
+  ) {
+    if (!origin) return callback(null, true); // Allow non-browser requests
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    } else {
+      return callback(new Error("Not allowed by CORS"));
+    }
+  },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
 };
 
-// Apply CORS middleware globally
+// Apply CORS middleware FIRST
 app.use(cors(corsOptions));
-
-// Explicitly handle pre-flight OPTIONS requests using a pure RegExp object
-// This completely bypasses the Express 5 / path-to-regexp string parsing bug
 app.options(/.*/, cors(corsOptions));
 
 app.use(express.json());
