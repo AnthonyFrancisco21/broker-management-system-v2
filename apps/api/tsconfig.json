@@ -1,13 +1,26 @@
 {
+  "extends": "../../packages/typescript-config/base.json",
   "compilerOptions": {
     "target": "ES2020",
     "module": "commonjs",
+    "lib": ["ES2020"],
+    "outDir": "./dist",
+    "rootDir": "./src",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "outDir": "./dist",
-    "rootDir": "./src"
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "baseUrl": ".",
+    "paths": {
+      "@repo/database": ["../../packages/database/dist/index.js"],
+      "@repo/database/*": ["../../packages/database/dist/*"]
+    }
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"],
+  "references": [{ "path": "../../packages/database" }]
 }

@@ -44,7 +44,7 @@ app.get("/api/health", (req, res) => {
 // app.use("/api/reservations", reservations);
 
 if (process.env.NODE_ENV !== "production") {
-  app.listen(5000, () => console.log("Running on 5000"));
+  app.listen(3000, () => console.log("Running on 3000"));
 }
 
 export default app;
