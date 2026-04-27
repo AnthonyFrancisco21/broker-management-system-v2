@@ -1,5 +1,9 @@
 import dotenv from "dotenv";
-dotenv.config();
+
+// ONLY load local .env file if we are NOT in Vercel's production environment
+if (process.env.NODE_ENV !== "production") {
+  dotenv.config();
+}
 
 import express from "express";
 import cors from "cors";
@@ -19,14 +23,18 @@ const allowedOrigins = [
   "http://localhost:3002",
 ];
 
-app.use(
-  cors({
-    origin: allowedOrigins,
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  }),
-);
+const corsOptions = {
+  origin: allowedOrigins,
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
+
+// Apply CORS middleware globally
+app.use(cors(corsOptions));
+
+// Explicitly handle pre-flight OPTIONS requests for all routes (Crucial for Vercel)
+app.options("*", cors(corsOptions));
 
 app.use(express.json());
 
