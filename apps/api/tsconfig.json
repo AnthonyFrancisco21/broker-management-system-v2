@@ -14,11 +14,7 @@
     "resolveJsonModule": true,
     "declaration": true,
     "declarationMap": true,
-    "sourceMap": true,
-    "paths": {
-      "@repo/database": ["../../packages/database/dist/index.js"],
-      "@repo/database/*": ["../../packages/database/dist/*"]
-    }
+    "sourceMap": true
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"],
