@@ -7,11 +7,5 @@
     "strict": true,
     "skipLibCheck": true,
     "esModuleInterop": true
-  },
-  "references": [
-    { "path": "packages/database" },
-    { "path": "apps/api" },
-    { "path": "apps/marketing" },
-    { "path": "apps/system" }
-  ]
+  }
 }
