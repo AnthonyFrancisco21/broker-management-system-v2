@@ -1,4 +1,4 @@
-import { prisma } from "@repo/database";
+import { prisma } from '../lib/db';
 
 // ─── Local type aliases ───────────────────────────────────────────────────────
 // Defined here to guarantee type safety without relying on generated enums

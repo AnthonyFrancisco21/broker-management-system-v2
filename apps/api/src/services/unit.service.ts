@@ -1,4 +1,4 @@
-import { prisma } from "@repo/database";
+import { prisma } from '../lib/db';
 import fs from "fs";
 import path from "path";
 

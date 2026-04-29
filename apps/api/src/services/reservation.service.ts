@@ -2,7 +2,7 @@
 // apps/api/src/services/reservation.service.ts
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { prisma } from "@repo/database";
+import { prisma } from '../lib/db';
 import crypto from "crypto";
 import fs from "fs";
 import path from "path";
