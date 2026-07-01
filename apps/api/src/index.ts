@@ -12,7 +12,7 @@ import reservations from "./routes/reservation.routes";
 const app = express();
 
 const allowedOrigins = [
-  "https://broker-management-system-v2-marketi.vercel.app",
+  "https://broker-management-system-v2-marketing.vercel.app",
   "https://broker-management-system-v2-system.vercel.app",
   "http://localhost:3000",
   "http://localhost:3001",

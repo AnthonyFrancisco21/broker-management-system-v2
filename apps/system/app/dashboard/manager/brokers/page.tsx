@@ -18,9 +18,16 @@ export interface BrokerRow {
   primaryContact?: string;
   brokersLicense?: string;
   employerName?: string;
+  position?: string;
+  homeAddress?: string;
+  tin?: string;
+  emergencyContactName?: string;
+  emergencyContactNo?: string;
+  emergencyRelationship?: string;
   brokerPictures: any[];
   educBackgrounds: any[];
   salesExperiences: any[];
+  seminars: any[];
 }
 
 export default function BrokersPage() {
@@ -70,9 +77,16 @@ export default function BrokersPage() {
         primaryContact: b.primaryContact || "-",
         brokersLicense: b.brokersLicense,
         employerName: b.employerName,
+        position: b.position,
+        homeAddress: b.homeAddress,
+        tin: b.tin,
+        emergencyContactName: b.emergencyContactName,
+        emergencyContactNo: b.emergencyContactNo,
+        emergencyRelationship: b.emergencyRelationship,
         brokerPictures: b.brokerPictures || [],
         educBackgrounds: b.educBackgrounds || [],
         salesExperiences: b.salesExperiences || [],
+        seminars: b.seminars || [],
       }));
 
       setBrokers(rows);
@@ -176,7 +190,7 @@ export default function BrokersPage() {
             isOpen={!!selectedBroker}
             onClose={() => setSelectedBroker(null)}
             title="Agent Details"
-            maxWidth="max-w-md"
+            maxWidth="max-w-4xl"
           >
             <BrokerDetailsView broker={selectedBroker} />
           </Modal>

@@ -28,7 +28,6 @@ interface FormData {
   birthDate: string;
   homeAddress: string;
   email: string;
-  password: string;
   employerName: string;
   position: string;
   businessAddress: string;
@@ -98,7 +97,6 @@ export default function AddAgentForm({
     birthDate: "",
     homeAddress: "",
     email: "",
-    password: "",
     employerName: "",
     position: "",
     businessAddress: "",
@@ -221,7 +219,6 @@ export default function AddAgentForm({
       if (!formData.email.trim()) newErrors.email = "Required";
       if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email))
         newErrors.email = "Invalid email";
-      if (!formData.password.trim()) newErrors.password = "Required";
     } else if (currentStep === "professional") {
       if (!formData.employerName.trim()) newErrors.employerName = "Required";
       if (!formData.position.trim()) newErrors.position = "Required";
@@ -287,7 +284,6 @@ export default function AddAgentForm({
       payload.append("birthDate", formData.birthDate);
       payload.append("homeAddress", formData.homeAddress);
       payload.append("email", formData.email);
-      payload.append("password", formData.password);
       payload.append("employerName", formData.employerName);
       payload.append("position", formData.position);
       payload.append("businessAddress", formData.businessAddress);
@@ -566,24 +562,6 @@ export default function AddAgentForm({
                   />
                   {errors.homeAddress && (
                     <p className={errorClass}>{errors.homeAddress}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label className={labelClass}>
-                    Password <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="password"
-                    name="password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    className={inputClass}
-                    placeholder="••••••••"
-                    disabled={loading}
-                  />
-                  {errors.password && (
-                    <p className={errorClass}>{errors.password}</p>
                   )}
                 </div>
               </div>

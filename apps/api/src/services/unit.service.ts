@@ -6,7 +6,7 @@ import path from "path";
 export const getAllUnits = async () => {
   return await prisma.unit.findMany({
     include: {
-      clients: true,
+      
       unitPictures: true,
     },
     orderBy: {
@@ -20,7 +20,7 @@ export const getUnitById = async (id: number) => {
   return await prisma.unit.findUnique({
     where: { id },
     include: {
-      clients: true,
+      
       unitPictures: true,
     },
   });
